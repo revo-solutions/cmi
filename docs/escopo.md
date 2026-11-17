@@ -1,6 +1,7 @@
 # Escopo da Central Melhor Idade
 
-O que entra no MVP e o que fica para depois. A stack e a arquitetura estão em [arquitetura.md](arquitetura.md).
+O que entra no MVP e o que fica para depois. A stack e a arquitetura estão em [arquitetura.md](arquitetura.md), e a
+ordem de entrega do app está no [plano do front-end](plano-app.md).
 
 ## Produto
 
@@ -15,18 +16,20 @@ Restrições que guiam as escolhas: um único desenvolvedor e custo baixo.
 ### Medicamentos
 
 - Cadastrar e editar medicamentos e seus horários fixos, com um campo opcional de texto livre para a dose e o modo de tomar (por exemplo, "50 mg, 1 comprimido"). Permitir pausar os lembretes.
-- Agendar lembretes no aparelho, com as ações **Tomei** e **Lembrar depois**. O lembrete e o registro da tomada funcionam sem internet.
+- Agendar lembretes no aparelho, com as ações **Tomei** e **Lembrar depois** (que adia **10 minutos**). O lembrete e o registro da tomada funcionam sem internet.
 - Mostrar o próximo horário na tela **Hoje**, com os estados **Pendente**, **Registrado** e **Sem confirmação**. O histórico mostra quando a tomada foi registrada e permite corrigir um toque acidental.
+- O aparelho mostra **Sem confirmação** com o mesmo prazo de **1 hora** que o servidor usa nos avisos ao familiar: é um número só, copiado no app e no servidor. A tela não diz se o familiar foi avisado; isso depende também do contato recente com o celular.
 
 ### Relatório para a consulta
 
 - **Lista de remédios em uso (grátis).** Nome, dose e horários, para mostrar ao médico ou num pronto-socorro.
 - **Relatório de regularidade (Premium).** Um PDF de um período escolhido (30, 60 ou 90 dias) com:
   - os remédios em uso, com dose e horários;
-  - por remédio, as doses registradas no período (por exemplo, 82 de 90), as sem confirmação e o atraso típico em relação ao horário;
+  - por remédio, as doses registradas no período (por exemplo, 82 de 90), as sem confirmação e o atraso típico em relação ao horário (a mediana do atraso das doses registradas);
   - uma grade de dias × doses, com os períodos de lembrete pausado marcados como pausados, e não como esquecimento;
   - no rodapé: "Registros feitos pela própria pessoa no aplicativo. Um registro indica que a dose foi marcada como tomada, não comprova a ingestão."
 - No grátis, a tela mostra um resumo do período (por exemplo, "Você registrou 91% das doses nos últimos 30 dias") e oferece o Premium para gerar o PDF completo.
+- O percentual conta sobre as doses esperadas no período, sem os dias com lembrete pausado e sem as doses ainda dentro do prazo de 1 hora.
 - O PDF é gerado no próprio celular, funciona sem internet e é compartilhado pelo menu do sistema (WhatsApp, e-mail ou impressão).
 - Sem alegações clínicas: o app não fala em "monitoramento" nem em "controle do tratamento".
 
@@ -85,7 +88,7 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 - **E-mail.** Quem entra pela Apple com "Ocultar meu e-mail" entrega um endereço de redirecionamento, não o e-mail real.
 - **Nome.** Logo depois do login, já preenchido com o nome da conta Google ou Apple, para a pessoa confirmar ou dizer como prefere ser chamada. Os avisos ao familiar usam esse nome: "sua mãe, Maria".
 - **Data de nascimento.** Na mesma tela do nome, com campos grandes de dia, mês e ano (o calendário do sistema é difícil para esse público). No dia do aniversário, o app mostra uma notificação de parabéns.
-- **Questionário de saúde.** Logo depois da data de nascimento, numa tela só, com botões grandes e um **Pular** bem visível. Se a pessoa pular, um cartão na tela **Hoje** volta a pedir alguns dias depois. Tudo fica editável no Perfil.
+- **Questionário de saúde.** Logo depois da data de nascimento, numa tela só, com botões grandes e um **Pular** bem visível. Se a pessoa pular, um cartão na tela **Hoje** volta a pedir **3 dias** depois. Tudo fica editável no Perfil.
   - **Condições** (múltipla escolha): pressão alta, diabetes, colesterol alto, problema no coração, artrose ou artrite, osteoporose, tireoide, depressão ou ansiedade, problema de memória, asma ou bronquite crônica, AVC (derrame), problema nos rins, outra (texto livre) e nenhuma.
   - **Três perguntas de sim ou não:** mora sozinho(a)? Caiu nos últimos 12 meses? Tem dificuldade para enxergar? A última pode ligar o modo de letras grandes e alto contraste.
   - **Usos:** artigos sugeridos, conhecer a base de usuários, pesquisa para a futura linha de suplementos e contexto para o futuro chat com IA. A resposta sobre quedas mede o interesse no [spike de detecção de queda](#spike-detecção-de-possíveis-quedas).
