@@ -42,10 +42,11 @@ SQLite. A validação em aparelhos reais fica para o fluxo de medicamentos da fa
 **Aceite:** **Tomei** fica salvo offline antes de reabrir o app; **Lembrar depois** dispara uma vez, mantém o horário
 original da dose e preserva o próximo disparo diário. A mesma ação entregue duas vezes não duplica o registro.
 
-## Fase 1: fundação
+## Fase 1: fundação (concluída)
 
 - [x] Navegação: abrir **Hoje** no `App.tsx`, com **Perfil** pelo botão do cabeçalho.
-- [ ] Gerar um cliente de desenvolvimento novo (`react-native-screens` é nativo) e conferir o aceite abaixo no aparelho.
+- [x] Gerar o [APK Android de teste (build 4)](https://expo.dev/accounts/revosolutions/projects/central-melhor-idade/builds/cb6bceda-d2a4-41e8-9801-18cf2a3bc4d0)
+      no perfil `preview`, com `react-native-screens`.
 - [x] Componentes em `src/components`, já acessíveis (papel, rótulo, área mínima de 56 dp e 64 dp nas ações
       principais):
   - `AppText`, com os papéis de `theme.ts` e o multiplicador do modo de letras grandes;
@@ -63,36 +64,42 @@ original da dose e preserva o próximo disparo diário. A mesma ação entregue 
 
 **Aceite:** navegação utilizável com TalkBack e VoiceOver, fonte máxima e modo de letras grandes. Formulários e
 estados continuam legíveis, com foco previsível, controles rotulados e rolagem só vertical. Conferir isso a cada fase.
+A validação em aparelho ainda está pendente.
 
 ## Fase 2: medicamentos e lembretes
 
-Protótipo antes: o cadastro de remédio com os campos de hora e minuto e o histórico do dia com
-**Desfazer** e os dias pausados.
+Protótipos no [canvas](https://claude.ai/artifact/KkgXf3Cyrsv7azcrM7StK1), em "Protótipos da fase 2": o cadastro de
+remédio com os campos de hora e minuto e o histórico do dia com **Não tomei** e os dias pausados, em 100% e 150%. O
+código já segue os protótipos; um ajuste depois muda os dois juntos.
 
-- [ ] Interface única em `src/lib/reminders.ts`: agendar e cancelar os lembretes de um medicamento, reconciliar tudo
-      ao abrir o app e depois de cada mudança, e receber **Tomei** e **Lembrar depois**. Um gatilho diário repetido
-      por horário, com o id `medicamento:horário`; o adiamento é um gatilho único, com o intervalo num ajuste só.
-- [ ] **Tomei** cria ou atualiza o registro da dose (medicamento, data e hora marcadas no relógio do aparelho,
-      `taken_at`), com proteção contra a mesma ação entregue duas vezes.
-- [ ] Barra de abas (`@react-navigation/bottom-tabs`) com **Hoje** e **Remédios**, como no canvas, e **Perfil** pelo
+- [x] Revisar os protótipos: aprovados pelo mantenedor, com o compartilhamento por remédio como opt-out.
+- [x] Interface única em `src/lib/reminders.ts`: agendar e cancelar os lembretes, reconciliar tudo ao abrir o app e
+      depois de cada mudança, e receber **Tomei** e **Lembrar depois**. Um gatilho diário repetido por horário
+      (`delivery: 'alarmClock'`), com o id `dose.<medicamento>.<HHmm>`; o adiamento é um gatilho único de 10 minutos,
+      com o id `snooze.<medicamento>.<dia>.<HHmm>`.
+- [x] **Tomei** cria ou atualiza o registro da dose (medicamento, data e hora marcadas no relógio do aparelho,
+      `taken_at`), e a mesma ação entregue duas vezes guarda só o primeiro toque.
+- [x] Barra de abas (`@react-navigation/bottom-tabs`) com **Hoje** e **Remédios**, como no canvas, e **Perfil** pelo
       botão do cabeçalho. Rótulos das abas com `maxFontSizeMultiplier` 1,15.
-- [ ] Tela **Remédios**: lista, cadastro e edição (nome, dose em texto livre, horários), pausar e retomar, excluir
-      (fica como exclusão lógica). A chave de compartilhar com o contato só aparece quando há contato. Mudar horários,
-      pausar e retomar fecham o período vigente e abrem outro; editar nome ou dose não mexe nos períodos.
-- [ ] Tela **Hoje**, como no canvas: o próximo horário com **Tomei**, os horários do dia com o estado de cada um, e o
-      botão SOS. Os estados seguem a regra do `AGENTS.md`. Um **Tomei** local já aparece como registrado, mesmo com
-      envio pendente.
-- [ ] Tela **Lembrete**, aberta pelo toque na notificação: horário em 72, **Tomei** em 30, **Lembrar depois**.
-- [ ] Histórico por dia, com a hora do registro e **Desfazer** (limpa `taken_at`). As doses esperadas de cada dia
-      vêm dos períodos daquele dia, não dos horários atuais; dias pausados aparecem como pausados.
-- [ ] Android: canal `medicamentos`, alarme exato e a orientação para tirar o app da economia de bateria.
-- [ ] Testes: estado da dose, próximo horário, reconciliação dos lembretes.
-- [ ] Validar o gatilho diário, **Tomei** e **Lembrar depois** em modo avião, com tela bloqueada e o app fora dos
+- [x] Tela **Remédios**: lista, cadastro e edição (nome, dose em texto livre, horários), pausar e retomar, excluir
+      (fica como exclusão lógica). Com contato, o cadastro informa que a Ana acompanha o remédio e oferece, desmarcada,
+      "Não compartilhar este remédio com a Ana"; na lista, os que ficaram de fora aparecem como "Só para você". Mudar
+      horários, pausar e retomar abrem um período; editar nome ou dose não mexe nos períodos.
+- [x] Tela **Hoje**, como no canvas: o próximo horário com **Tomei** e os horários do dia com o estado de cada um. O
+      botão SOS entra com a fase 5. Um **Tomei** local já aparece como registrado, mesmo com envio pendente.
+- [x] Tela **Lembrete**, aberta pelo toque na notificação: horário em 72, **Tomei** e **Lembrar depois**.
+- [x] Histórico por dia, aberto pela **Hoje**, com a hora em que foi tomado, **Não tomei** e **Tomei** para uma dose
+      esquecida. As doses de cada dia vêm dos períodos daquele dia; dias pausados aparecem como pausados.
+- [x] Android: canal `medicamentos`, pedido de alarme exato num cartão da **Hoje** e a orientação de bateria no
+      **Perfil**.
+- [x] Testes: estado da dose, próximo horário, identificadores e reconciliação dos lembretes.
+- [ ] Gerar um build (as abas mudaram a parte em JavaScript só; o último cliente com `react-native-screens` serve) e
+      validar o gatilho diário, **Tomei** e **Lembrar depois** em modo avião, com tela bloqueada e o app fora dos
       recentes, num Android e num iPhone real pelo TestFlight. Testar permissões negadas ou revogadas, economia de
       bateria, modo Foco, reinício e mudança de fuso. Registrar aparelho, sistema e origem do registro. Preparar
       Sentry (`@sentry/react-native`) para a rodada no iPhone.
-- [ ] Limitar os lembretes no cadastro. No iOS, horários diários, adiamentos, aniversário e aviso do fim do teste
-      precisam ficar abaixo do limite de 64 notificações pendentes.
+- [x] Limitar os lembretes no cadastro a 48 horários diários, abaixo das 64 notificações pendentes do iOS, com
+      espaço para adiamentos, aniversário e aviso do fim do teste.
 
 **Aceite:** cadastrar dois remédios com o mesmo horário, registrar um offline, adiar o outro e desfazer um toque.
 Editar, pausar e retomar sem alterar o que estava previsto antes da mudança ou deixar alarmes antigos. Cobrir
@@ -152,14 +159,16 @@ Protótipo antes: o vínculo pelo WhatsApp, com o link, o QR code e os estados p
 
 - [ ] Cadastro do contato: nome, telefone e parentesco do ponto de vista do familiar (`Relationship`: pai, mãe, avô,
       avó, tio, tia, amigo, outro). Remover o contato limpa o compartilhamento de todos os medicamentos.
-- [ ] Escolha explícita dos medicamentos compartilhados e revogação por remédio ou do contato inteiro. Mostrar quando
+- [ ] Ao cadastrar o contato, compartilhar os remédios que já existem e mostrar a lista para desmarcar algum
+      (compartilhado por padrão, `docs/escopo.md`).
+- [ ] Revogação por remédio ou do contato inteiro. Mostrar quando
       a revogação ainda aguarda sincronização; ao remover, limpar os compartilhamentos locais e no servidor.
 - [ ] Ligar (`tel:`) e SMS com o texto pronto (`sms:`), sem a permissão de SMS.
 - [ ] Vínculo pelo WhatsApp (Premium): `GET contact/link`, link `wa.me` para o número do app com a mensagem pronta e o
       código, o mesmo link em QR code (`react-native-qrcode-svg`) e o estado pendente, vinculado ou parado (PARAR).
       Explicar os avisos, inclusive aniversário. Atualizar ao voltar à tela; `404` pode ser contato ainda na fila.
       Trocar o telefone exige novo vínculo. O número do app vem de `EXPO_PUBLIC_WHATSAPP_NUMBER`.
-- [ ] Tela **SOS**, como no canvas. Grátis: ligar para o contato, SMS e 192. Premium: `POST sos` pela fila (id e
+- [ ] Botão **SOS · Pedir ajuda** no pé da **Hoje** e tela **SOS**, como no canvas. Grátis: ligar para o contato, SMS e 192. Premium: `POST sos` pela fila (id e
       `requestedAt` com o fuso) e consulta de `GET sos/{id}` até um estado final; enviado, entregue e lido em verde;
       sem internet guardado na fila; não enviado e falha oferecem ligar e **Tentar de novo**. Aguardando por mais de
       alguns segundos também oferece ligar. Informar se um pedido offline ainda pode sair quando a rede voltar.

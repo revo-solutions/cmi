@@ -1,6 +1,7 @@
+import { StyleSheet, View } from 'react-native';
+
 import { daysInMonth, stepDate, type DateParts } from '../lib/dateFields';
 import { NumberField } from './NumberField';
-import { Row } from './Row';
 
 type DateFieldProps = {
   value: DateParts;
@@ -8,7 +9,7 @@ type DateFieldProps = {
   years: { min: number; max: number };
 };
 
-// Day, month and year in large fields, such as the birth date (AGENTS.md, "Product rules").
+// Day, month and year in large fields, one per row, such as the birth date (AGENTS.md, "Product rules").
 export function DateField({ value, onChange, years }: DateFieldProps) {
   const type = (field: keyof DateParts, typed: number) => {
     const next = { ...value, [field]: typed };
@@ -21,10 +22,16 @@ export function DateField({ value, onChange, years }: DateFieldProps) {
   };
 
   return (
-    <Row>
+    <View style={styles.field}>
       <NumberField label="Dia" value={value.day} digits={2} onStep={(delta) => onChange(stepDate(value, 'day', delta, years))} onType={(day) => type('day', day)} />
       <NumberField label="Mês" value={value.month} digits={2} onStep={(delta) => onChange(stepDate(value, 'month', delta, years))} onType={(month) => type('month', month)} />
       <NumberField label="Ano" value={value.year} digits={4} onStep={(delta) => onChange(stepDate(value, 'year', delta, years))} onType={(year) => type('year', year)} />
-    </Row>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  field: {
+    gap: 10,
+  },
+});
