@@ -123,12 +123,18 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<DateTime?>("LastSeenAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("LastTakenAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool?>("LivesAlone")
                         .HasColumnType("boolean");
 
                     b.Property<string>("OtherCondition")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("PingSentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Platform")
                         .HasMaxLength(20)
@@ -280,6 +286,46 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.ToTable("Medications", (string)null);
                 });
 
+            modelBuilder.Entity("RevoSolutions.CMI.Domain.Entities.Notice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<TimeOnly?>("ScheduledTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("AccountId", "Day");
+
+                    b.ToTable("Notices", (string)null);
+                });
+
             modelBuilder.Entity("RevoSolutions.CMI.Data.PostgreSql.Authentication.RefreshToken", b =>
                 {
                     b.HasOne("RevoSolutions.CMI.Domain.Entities.Account", null)
@@ -314,6 +360,15 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                 });
 
             modelBuilder.Entity("RevoSolutions.CMI.Domain.Entities.Medication", b =>
+                {
+                    b.HasOne("RevoSolutions.CMI.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RevoSolutions.CMI.Domain.Entities.Notice", b =>
                 {
                     b.HasOne("RevoSolutions.CMI.Domain.Entities.Account", null)
                         .WithMany()

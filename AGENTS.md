@@ -163,6 +163,27 @@ Every family notice goes through the outbox. App events ("Tomei", SOS, heartbeat
 them to the handlers that call WhatsApp. Delivery is at-least-once, so every notice carries an idempotency key (for
 example dose + notice type) to avoid paying twice for the same message.
 
+How it is built:
+
+- `NoticeService.Check(accountId, now)` holds every time-based rule (missed dose, summary, no contact with a ping
+  first, abandonment pause, birthday) and takes the instant as a parameter, so tests run it at any time without
+  waiting. Its numbers are `NoticeSettings`, whose defaults are the only place they are written; the `Notices`
+  configuration section overrides them.
+- A decision is a `Notice` row with a unique `Key` (account + kind + what it is about: the dose's date and time, the
+  day, the last contact). The key is what stops a notice from being decided twice, and what makes the one-off notices
+  repeat only after the state changes (the no-contact key is the last contact, the pause key the last "Tomei").
+- `Notice.Create` raises `NoticeCreatedDomainEvent`; `SendNoticeHandler` sends it through `INoticeSender`
+  (`Domain/Contracts/Messaging`) and sets `SentAt`, which stops a retried delivery from paying twice. The message is
+  built when it is sent, from the current data. `LoggingNoticeSender` stands in until `Anticorruption.WhatsApp`.
+- The ping is `Account.RequestPing`, which raises `DevicePingRequestedDomainEvent`; nothing handles it until
+  `Anticorruption.ExpoPush`, so the no-contact notice simply comes `PingWait` after the limit.
+- `NoticeWorker` (every minute, one scope per account) and `OutboxWorker` (every 5 seconds) are the hosted services.
+  Tests remove both and call `NoticeService` and `OutboxProcessor` themselves.
+- Only accounts with a contact are checked, and only medications with `SharedWithContact` (not paused, not deleted)
+  count. Abandonment counts from `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
+- A missed dose is notified only while its deadline is under an hour old, so a worker outage or a contact added
+  later doesn't send stale notices, and only for doses scheduled after the medication's last change.
+
 ### API contract
 
 - Enums travel by name in JSON, both ways, through a global `JsonStringEnumConverter` in `Program.cs`; don't add
@@ -216,10 +237,13 @@ npx tsc --noEmit
 
 What the MVP includes and what comes after it: `docs/escopo.md`.
 
-- The back end has login, refresh, logout, the active device, account deletion, the profile, sync and the heartbeat.
-  Not yet: the WhatsApp, ExpoPush and RevenueCat projects, the per-minute worker, SOS, and the outbox processor as a
-  hosted service. `OutboxProcessor` and the interceptor are wired, but nothing raises a domain event yet; host the
-  processor together with the first handler.
+- The back end has login, refresh, logout, the active device, account deletion, the profile, sync, the heartbeat,
+  the notice rules, the worker and the outbox. Not yet: the WhatsApp, ExpoPush and RevenueCat projects, SOS, the
+  uninstalled-app notice (it comes from the push receipts), and the Premium and WhatsApp-link gates on who gets
+  notices (today every account with a contact is checked; `NoticeService.AccountsToCheck` is where they go).
+- The account has no name yet, and the notices need one ("Sua mãe, Maria"). The summary text has to say "no data"
+  while the phone is silent; that is for the message builder in the WhatsApp milestone.
+- A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
 - CI (`.github/workflows/ci.yml`) covers the back end only: format, build and tests. The app job comes with the Expo
   project. No Dockerfile or deploy workflow yet; take them from TVP when deploying.
 - The Expo app doesn't exist yet.

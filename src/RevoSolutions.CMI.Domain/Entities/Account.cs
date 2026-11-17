@@ -1,4 +1,5 @@
 using RevoSolutions.CMI.Domain.Enumerators;
+using RevoSolutions.CMI.Domain.Events;
 using RevoSolutions.CMI.Domain.Models;
 
 namespace RevoSolutions.CMI.Domain.Entities;
@@ -26,6 +27,12 @@ public class Account : EntityBase
 
     // The server's clock at the active device's last login, upload or heartbeat; the notice rules read it.
     public DateTime? LastSeenAt { get; set; }
+
+    // When the server last pinged the device for going quiet; a ping later than LastSeenAt is still unanswered.
+    public DateTime? PingSentAt { get; set; }
+
+    // The latest "Tomei" received, for the abandonment pause.
+    public DateTime? LastTakenAt { get; set; }
 
     public DateOnly? BirthDate { get; set; }
 
@@ -65,6 +72,21 @@ public class Account : EntityBase
     }
 
     public void MarkSeen() => LastSeenAt = DateTime.UtcNow;
+
+    public void RecordTaken(DateTimeOffset takenAt)
+    {
+        if (LastTakenAt is null || LastTakenAt < takenAt.UtcDateTime)
+        {
+            LastTakenAt = takenAt.UtcDateTime;
+        }
+    }
+
+    // The push wakes the app into sending a heartbeat; the family hears about it only if none comes.
+    public void RequestPing(DateTime now)
+    {
+        PingSentAt = now;
+        AddDomainEvent(new DevicePingRequestedDomainEvent(Id, now));
+    }
 
     public void RecordHeartbeat(HeartbeatModel heartbeat)
     {

@@ -95,6 +95,11 @@ public class SyncService
             {
                 record.Update(change);
             }
+
+            if (change.TakenAt is { } takenAt)
+            {
+                account.RecordTaken(takenAt);
+            }
         }
 
         var contacts = Latest(changes.Contacts, c => c.Id, c => c.UpdatedAt);

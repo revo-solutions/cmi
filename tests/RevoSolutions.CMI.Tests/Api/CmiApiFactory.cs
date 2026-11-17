@@ -11,7 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RevoSolutions.CMI.API.Authentication;
 using RevoSolutions.CMI.API.Models;
+using RevoSolutions.CMI.API.Notices;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
+using RevoSolutions.CMI.Domain.Contracts.Messaging;
 using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
 using Testcontainers.PostgreSql;
@@ -33,6 +35,8 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
+
+    public RecordingNoticeSender Sender { get; } = new();
 
     public static string NewSubject() => Guid.NewGuid().ToString("N");
 
@@ -86,6 +90,15 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
         {
             services.RemoveAll<ISocialTokenValidator>();
             services.AddSingleton<ISocialTokenValidator, FakeSocialTokenValidator>();
+
+            // Tests run the rules and the outbox themselves, at the instants they choose.
+            foreach (var worker in services.Where(s => s.ImplementationType == typeof(NoticeWorker) || s.ImplementationType == typeof(OutboxWorker)).ToList())
+            {
+                services.Remove(worker);
+            }
+
+            services.RemoveAll<INoticeSender>();
+            services.AddSingleton<INoticeSender>(Sender);
         });
     }
 
