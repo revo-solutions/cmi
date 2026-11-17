@@ -1,0 +1,16 @@
+# Local Postgres for the API: docker compose up -d
+# Port 5433, so it runs next to RevoSolutions.TVP's database on 5432.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: cmi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - cmi-postgres:/var/lib/postgresql/data
+
+volumes:
+  cmi-postgres:

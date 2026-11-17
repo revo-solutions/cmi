@@ -1,0 +1,232 @@
+# RevoSolutions.CMI — working conventions
+
+Central Melhor Idade: an Android and iOS app that helps older people keep their medication routine, find useful phone
+numbers and articles, and ask a trusted family member for help. The family member gets notices over WhatsApp and never
+installs the app. Single-maintainer project. React Native + Expo in `mobile/`; a .NET 10 API on PostgreSQL in `src/`,
+on the same simplified DDD modular monolith as RevoSolutions.TVP. What the MVP includes and what comes after it:
+`docs/escopo.md`. The stack and the reasons behind it: `docs/arquitetura.md`.
+
+The back-end solution exists (`RevoSolutions.CMI.slnx`); the Expo app and the `Anticorruption.*` projects don't yet.
+Create them as the work needs them, following this file, and update it when a decision here changes or a new one is
+made.
+
+## Guiding rule: less is more
+
+This codebase is optimized for one person to hold in their head. Default to the smallest change
+that solves the problem.
+
+- **Keep implementations as simple as possible.** Fewer moving parts beats clever. Don't introduce
+  layers, abstractions, generics, or patterns until a concrete need forces them. A new interface,
+  base class, or indirection has to earn its place — if it has a single implementation and no second
+  one in sight, inline it.
+- **No redundant comments.** Don't restate what the code already says. Comment only the non-obvious
+  *why* — a constraint, a trade-off, a gotcha. If a comment just narrates the next line, delete it
+  and let the names carry the meaning.
+- **Prefer deleting over adding.** When extending, first check whether existing code already does the
+  job. Match the surrounding style instead of bringing new conventions.
+- **Build only what the MVP needs.** Items under "Evoluções após o MVP" and the fall-detection spike in
+  `docs/escopo.md` wait; don't lay groundwork for them.
+
+## Product rules
+
+The rules and their numbers live in `docs/escopo.md`; change them there first, then in code. Every number below is a
+starting value: keep each one in a single setting.
+
+- The person using the app is older and may see, hear or move with difficulty. Large controls, high contrast, text that
+  scales with the system font size, and TalkBack and VoiceOver labels on every control of the main flows are
+  requirements, not polish. Never fix a font size so it ignores the system setting.
+- Medication reminders and recording a dose ("Tomei") work offline: reminders are local notifications scheduled on the
+  device and doses are stored on the device first. Anything that needs the server (events for family notices, SOS) is
+  queued and sent when there is a connection, and its status is shown, including failures.
+- A dose is **Pendente**, **Registrado** or **Sem confirmação**. The history keeps when the dose was recorded and lets
+  the person undo an accidental tap.
+- The person chooses which medications the trusted contact sees and can revoke that access; the contact never sees a
+  medication that wasn't shared. Revoking access deletes the contact's and the shared medications' data from the
+  server.
+- The app stands on its own: the person can use it and buy Premium with no family member linked. What is free and
+  what is Premium is in `docs/escopo.md`. Rule: anything with a per-use cost is Premium. Every WhatsApp send (linking,
+  routine notices, SOS over WhatsApp, birthday reminder) is Premium; free SOS calls or opens an SMS from the phone's
+  own plan. The server and sync are fixed costs and stay free.
+- Social login is mandatory at setup, with no passwords: Google on Android; Apple and Google on iOS (Apple requires
+  its own login whenever Google's is offered). The account follows the person to any phone: medications, history,
+  contact, profile and Premium. Account deletion is available in the app and deletes everything on the server.
+- Setup order: login, birth date (large day/month/year fields, not the system calendar), health questionnaire (one
+  screen, with a visible "Pular"; a card on **Hoje** asks again days later), medications, trusted contact (optional),
+  permissions. Ask for little up front; everything stays editable in the profile.
+- Health conditions are stored as fixed codes (`hipertensao`, `diabetes`, ...) plus the free text of "outra", never as
+  display text, so the list can grow without breaking analysis.
+- Premium is bought in the app through the stores, via RevenueCat. The server trusts only RevenueCat's webhook, never
+  the app, and sends nothing over WhatsApp unless Premium is active. When Premium ends, sends stop and the link
+  is kept, so notices resume on resubscribing.
+- The doctor report (PDF) is built on the device from SQLite and shared through the system share sheet. No clinical
+  claims anywhere ("monitoramento", "controle do tratamento").
+- The family member links by sending a prefilled WhatsApp message with a link code to the app's number; that message is
+  the opt-in Meta requires. Replying **PARAR** stops all notices to that contact.
+- The server, not the device, decides a dose is **Sem confirmação**, with the same rule on Android and iOS: no "Tomei"
+  received 1 hour after the scheduled time, and only if the device was in contact in the previous 6 hours. Otherwise
+  the dose only shows in the daily summary. The notice says the confirmation wasn't received, never that the dose
+  wasn't taken.
+- Every WhatsApp notice is a paid utility template message, so notices are kept few:
+  - one daily summary at 20:00 in the person's time zone, never a notice per "Tomei";
+  - at most 3 missed-dose notices per contact per day, with doses at the same time grouped into one;
+  - no contact for 12 hours (24 on iOS) sends a push ping first, then a single notice;
+  - 3 days in a row with no dose recorded pauses the missed-dose notices and the summary, with a single notice; they
+    resume on the next "Tomei";
+  - one-off notices (no contact, paused, app uninstalled) aren't repeated until the state changes;
+  - a birthday reminder goes to the contact on the person's birthday ("hoje é aniversário da sua mãe, Maria"). Notices use the contact's relationship, stored from the contact's point of view.
+- Fall detection is a spike outside the MVP. Don't build it into the app.
+
+## Mobile
+
+- React Native + Expo + TypeScript, for Android and iOS, built with EAS (development builds, not Expo Go). The main
+  development device is Android; iOS is tested through TestFlight and published only after it has been tested on a
+  real iPhone. `src/features/<feature>` holds a feature's screens and logic, `src/components` the shared UI, `src/lib`
+  the API client and device helpers.
+- Reminders use `expo-notifications` (daily repeating triggers, "Tomei" and "Lembrar depois" actions) and
+  `expo-background-task` (the outgoing queue and the heartbeat), behind one TypeScript interface. Prefer Expo modules
+  over bare native code; own Kotlin or Swift code goes behind that same interface, and only when tests on real devices
+  prove the gain. Leaving the managed workflow needs a reason written here.
+- SQLite (`expo-sqlite`) on the device keeps the app working offline. Every change is synced to the server through
+  the outgoing queue (see `docs/arquitetura.md`, "Sincronização"): records get a UUID and an updated-at on the
+  device, the last write wins, and only one device per account is active.
+- Login uses `@react-native-google-signin/google-signin` and `expo-apple-authentication`; the app exchanges the
+  provider's token for the API's JWT and refresh token, kept in the system's secure storage.
+- Purchases use the RevenueCat SDK (`react-native-purchases`) with the account id as the app user id. The app reads
+  the entitlement from the SDK only to show what is unlocked.
+- The doctor report uses `expo-print` and `expo-sharing`.
+- The API client is generated from the OpenAPI document with orval, as in RevoSolutions.TVP's `web/`.
+- Content lives in `mobile/content/`: one Markdown file per article (frontmatter with title, theme, health-condition
+  codes and date), `telefones.json` (category, name, number, whether it is an emergency number) and the Premium promo
+  texts. No admin UI and no content endpoint; new content ships with EAS Update.
+- The app is pt-BR only: write user-facing text in Portuguese and don't add an i18n layer until a second language is
+  scheduled.
+
+## Backend
+
+### Namespaces
+
+`RevoSolutions.CMI.{project}.{folder}` — folder names mirror namespaces, file-scoped declarations.
+
+### Structure
+
+- `Domain.Core` — contracts only (`IRepository`, `IUnitOfWork`, `IDomainEvent` and its handler, exceptions).
+- `Domain` — entities (account, profile, medications, dose records, contact), domain services, the notice rules, validators, Mapperly mappers, domain events. Owns the
+  contracts of the external systems (`Contracts/Messaging`, `Contracts/Push`, `Contracts/Billing`). No infrastructure.
+- `Data.PostgreSql` — EF Core `DbContext`, repositories, Unit of Work, the outbox and its interceptor, refresh tokens,
+  migrations.
+- `Anticorruption.*` — one project per external system, translating it into domain terms: `WhatsApp` (Meta Cloud
+  API, called directly with no intermediary: template sends and the webhook's link code, PARAR and delivery
+  status), `ExpoPush` (the ping and its receipts, which reveal an uninstalled app) and `RevenueCat` (the subscription
+  webhook: purchase, renewal, cancellation, expiration, translated into the Premium state).
+- `API` — controllers, sync endpoints, the WhatsApp and RevenueCat webhooks, social login, the per-minute worker and the outbox processor
+  (hosted services), DI composition. Thin; delegates to domain services.
+- `tests/RevoSolutions.CMI.Tests` — one test project for the solution.
+
+### Authentication
+
+Social login only: no passwords and no ASP.NET Core Identity. The API validates the Google or Apple ID token against
+the provider's public keys, finds or creates the account, marks the device as the active one, and issues a short-lived
+JWT with a rotating refresh token, the same token scheme as RevoSolutions.TVP.
+
+- `API/Authentication/AccountService` does login, refresh, logout, "use this phone again" and account deletion. Like
+  TVP's, it queries `CmiDbContext` directly, since refresh tokens live in `Data.PostgreSql`.
+- `ISocialTokenValidator` exists so tests sign in with a fake; `SocialTokenValidator` is the real one. The accepted
+  audiences are `SocialLogin:GoogleClientIds` (the web client ID the app passes to Google Sign-In) and
+  `SocialLogin:AppleClientIds` (the iOS bundle ID). An account is one provider + subject: the same person signing in
+  with Apple and then Google gets two accounts.
+- The access token carries `sub` (the account) and `device_id` (a UUID the app generates once per install, sent at
+  login). A refresh keeps the device. A device that is not `Account.ActiveDeviceId` gets 409 on sync; its session stays
+  valid so `PUT account/active-device` can take the account back.
+- Deleting the account deletes the row; every table references it with `ON DELETE CASCADE`, refresh tokens included.
+
+### Sync
+
+`SyncService` and `SyncModel`, one shape both ways: `POST sync` uploads a batch of changed records, `GET sync` downloads
+every record of the account. Records carry a device-generated `Id` and the device's `UpdatedAt`; a change is applied
+only when it is newer than the stored one, so a resent batch is harmless. The profile lives on the `Account` row and
+syncs as a whole, by `ProfileUpdatedAt`. A deleted medication stays as a tombstone (`Deleted`), because dose records
+point at it; a deleted contact is removed from the server. A dose record never changes which dose it is (medication,
+scheduled date and time, all wall-clock); only `TakenAt` changes, and undoing "Tomei" clears it.
+
+### Notices: worker and outbox
+
+Every family notice goes through the outbox. App events ("Tomei", SOS, heartbeat) and the worker's time-based checks
+(missed doses, the 20:00 summary, no contact, abandonment) raise domain events; the interceptor writes them to
+`OutboxMessages` in the same transaction; the outbox processor polls every few seconds, so SOS goes out fast, and hands
+them to the handlers that call WhatsApp. Delivery is at-least-once, so every notice carries an idempotency key (for
+example dose + notice type) to avoid paying twice for the same message.
+
+### API contract
+
+- Enums travel by name in JSON, both ways, through a global `JsonStringEnumConverter` in `Program.cs`; don't add
+  per-enum attributes.
+- Actions return `ActionResult<T>` (or `NoContentResult`), never a bare `IActionResult`, so the OpenAPI document
+  describes every response.
+
+### Conventions that the build enforces
+
+`Directory.Build.props`, `Directory.Packages.props`, `global.json`, `.editorconfig` and `NuGet.Config` came from
+RevoSolutions.TVP; keep them in step with it unless CMI needs otherwise.
+
+- Central Package Management: add versions in `Directory.Packages.props`; reference by name only in `.csproj`.
+- Never set `TargetFramework` or `Version` in a `.csproj` — they come from `Directory.Build.props`.
+- Style and naming are enforced by `.editorconfig` (`var` preferred, `_camelCase` private fields,
+  file-scoped namespaces). Run `dotnet format` before committing.
+- Migrations come from `dotnet ef migrations add <Name> ... --output-dir Migrations`; that folder is generated code.
+- Persistence is the only project that knows about EF Core. Keep `Domain` free of infrastructure types. The one
+  exception is `API/Authentication/AccountService` (see Authentication).
+
+## Build & test
+
+Backend:
+
+```bash
+dotnet build
+dotnet test                                         # needs Docker: Testcontainers starts a postgres:17
+dotnet format --verify-no-changes --severity warn
+```
+
+Running the API locally (Scalar at http://localhost:5090/scalar):
+
+```bash
+docker compose up -d                                # Postgres 17 on port 5433, next to TVP's on 5432
+dotnet ef database update --project src/RevoSolutions.CMI.Data.PostgreSql --startup-project src/RevoSolutions.CMI.API
+dotnet run --project src/RevoSolutions.CMI.API
+```
+
+After a model change: `dotnet ef migrations add <Name> --project src/RevoSolutions.CMI.Data.PostgreSql
+--startup-project src/RevoSolutions.CMI.API --output-dir Migrations`. `dotnet tool restore` installs `dotnet-ef`.
+Real logins need `SocialLogin:GoogleClientIds` / `SocialLogin:AppleClientIds` in user secrets; the tests don't.
+
+Mobile, from `mobile/`, once the Expo project exists:
+
+```bash
+npx expo start
+npx tsc --noEmit
+```
+
+## Not done yet
+
+What the MVP includes and what comes after it: `docs/escopo.md`.
+
+- The back end has login, refresh, logout, the active device, account deletion, the profile and sync. Not yet: the
+  WhatsApp, ExpoPush and RevenueCat projects, the per-minute worker, the heartbeat and events (SOS, "Tomei" as an
+  event), and the outbox processor as a hosted service. `OutboxProcessor` and the interceptor are wired, but nothing
+  raises a domain event yet; host the processor together with the first handler.
+- Sync doesn't carry yet what the notices will need: the person's time zone and which medications the contact sees.
+- No Dockerfile or CI workflow yet; take both from TVP when deploying.
+- The Expo app doesn't exist yet.
+
+## Commits
+
+[Conventional Commits](https://www.conventionalcommits.org): `type(scope): summary`, imperative and lowercase
+(`feat(mobile): schedule dose reminders`).
+
+- Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`. Add `!` after the type or
+  scope when an API change breaks clients (`feat(api)!: ...`).
+- Scope is optional and names the area touched: `mobile`, `domain`, `data`, `api`, `auth`, `deps`.
+
+## Agents
+
+This file is the single source of instructions for every coding agent. `CLAUDE.md` imports it, Gemini CLI reads it
+through `.gemini/settings.json`, and Codex reads it directly. Put new instructions here, never in those files.

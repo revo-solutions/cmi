@@ -1,0 +1,41 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <!-- Required for IDE0005 (unused usings) to run on build; see https://github.com/dotnet/roslyn/issues/41640 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      CS1591: XML documentation is optional in this template.
+      CA1848/CA2254: LoggerMessage source-gen is overkill for template filters; revisit per-service.
+      CA1861: materializing tag arrays once is a perf micro-optimization we can live without here.
+      CA1711: we keep the 'Handler' suffix for DDD clarity.
+      CA1716: 'Get' is the repository convention we want.
+      RCS1194: full exception ctor overloads are noise for template exceptions.
+    -->
+    <NoWarn>$(NoWarn);CS1591;CA1848;CA2254;CA1861;CA1711;CA1716;RCS1194</NoWarn>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Company>RevoSolutions</Company>
+    <Authors>RevoSolutions</Authors>
+    <Copyright>Copyright (c) RevoSolutions. All rights reserved.</Copyright>
+    <Product>RevoSolutions CMI</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

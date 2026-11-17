@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Riok.Mapperly" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RevoSolutions.CMI.Domain.Core\RevoSolutions.CMI.Domain.Core.csproj" />
+  </ItemGroup>
+
+</Project>

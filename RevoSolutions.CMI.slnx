@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Domain/">
+    <Project Path="src/RevoSolutions.CMI.Domain.Core/RevoSolutions.CMI.Domain.Core.csproj" />
+    <Project Path="src/RevoSolutions.CMI.Domain/RevoSolutions.CMI.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="src/RevoSolutions.CMI.Data.PostgreSql/RevoSolutions.CMI.Data.PostgreSql.csproj" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="src/RevoSolutions.CMI.API/RevoSolutions.CMI.API.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="compose.yaml" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RevoSolutions.CMI.Tests/RevoSolutions.CMI.Tests.csproj" />
+  </Folder>
+</Solution>
