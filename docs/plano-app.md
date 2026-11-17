@@ -103,24 +103,26 @@ virada do dia, mudança de fuso e reabertura do app.
 Precisa da API acessível pelo celular: local, pela rede ou por um túnel, até a hospedagem ser escolhida. A URL vem de
 `EXPO_PUBLIC_API_URL` por perfil do EAS.
 
-- [ ] Cliente gerado do OpenAPI pelo orval, como no `web/` do TVP, com o JWT no cabeçalho e a renovação pelo refresh
+- [x] Cliente gerado do OpenAPI pelo orval, como no `web/` do TVP, com o JWT no cabeçalho e a renovação pelo refresh
       token; tokens e o `device_id` (gerado uma vez por instalação) no `expo-secure-store`. Serializar a renovação
       do token rotativo. Permitir abrir o app offline com sessão já configurada.
-- [ ] Tela **Entrada**, como no canvas: Google no Android; Apple e Google no iPhone. Plugins e client IDs do
-      `@react-native-google-signin/google-signin` e do `expo-apple-authentication` no `app.json`.
-- [ ] Primeiro login num aparelho: `GET sync` preenche o SQLite antes de decidir se precisa de configuração inicial;
-      recuperar lembretes com as permissões locais e evitar misturar dados ou notificações de contas diferentes.
+- [x] Tela **Entrada**, como no canvas: Google no Android; Apple e Google no iPhone. Configuração dos plugins e
+      client IDs no [README do app](../mobile/README.md#login-e-push).
+- [x] Primeiro login num aparelho: `GET sync` preenche o SQLite antes de abrir a conta. Limpar os lembretes
+      e dados da conta anterior antes de expor a nova.
+- [ ] Recuperar os lembretes da conta restaurada conforme as permissões locais, pela interface da fase 2.
 - [ ] Fila de saída na tabela `outbox`: mudanças em lote por `POST sync`, enviadas após cada mudança, ao abrir, ao
       voltar a conexão e pelo `expo-background-task`, com novas tentativas. Gravar mudança e item de fila na mesma
       transação, enviar medicamentos antes das doses dependentes e preservar edições feitas durante um envio.
 - [ ] 409 na sincronização: tela "Sua conta foi aberta em outro celular", com **Usar neste celular**
       (`PUT account/active-device`). Suspender sync até reativar, preservar a fila e reativar como o `AGENTS.md` descreve.
-- [ ] Sinal de vida (`POST sync/heartbeat`) ao abrir e em segundo plano, com a plataforma, o fuso IANA e o token do
-      Expo. Ligar `enableRemoteNotifications` e as credenciais do FCM e do APNs no EAS.
-- [ ] Ping: tarefa de notificação em segundo plano (`expo-task-manager`; no iOS, `enableBackgroundRemoteNotifications`)
+- [x] Sinal de vida (`POST sync/heartbeat`) ao abrir e em segundo plano, com a plataforma, o fuso IANA e o token do
+      Expo. Ligar `enableRemoteNotifications`.
+- [x] Ping: tarefa de notificação em segundo plano (`expo-task-manager`; no iOS, `enableBackgroundRemoteNotifications`)
       que responde ao `{ "type": "ping" }` com um sinal de vida, sem mostrar nada.
+- [ ] Configurar OAuth, FCM e APNs e validar login, restauração, sessão offline, exclusão e ping em aparelhos reais.
 - [ ] Estado da fila visível: um aviso discreto quando há envios pendentes há muito tempo ou com falha.
-- [ ] Perfil: **Sair** (`POST auth/logout`) e **Excluir conta** (`DELETE account`), explicando a diferença.
+- [x] Perfil: **Sair** (`POST auth/logout`) e **Excluir conta** (`DELETE account`), explicando a diferença.
       A exclusão pede confirmação e conexão; limpar dados locais, fila, lembretes e sessão após a API confirmar.
 
 **Aceite:** registrar e corrigir uma dose offline, reconectar e restaurar em outro aparelho. Testar reenvio sem

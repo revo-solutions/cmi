@@ -123,6 +123,8 @@ starting value: keep each one in a single setting.
   contact, so an old queued change would bring back a contact the other phone removed.
 - Login uses `@react-native-google-signin/google-signin` and `expo-apple-authentication`; the app exchanges the
   provider's token for the API's JWT and refresh token, kept in the system's secure storage.
+  The app opens a stored session offline and serializes token rotation. First sign-in restores the account in one
+  SQLite transaction. The OAuth IDs, API URL and push credentials are configured as described in `mobile/README.md`.
 - Purchases use the RevenueCat SDK (`react-native-purchases`) with the account id as the app user id. The app reads
   the entitlement from the SDK only to show what is unlocked.
 - The doctor report uses `expo-print` and `expo-sharing`.
