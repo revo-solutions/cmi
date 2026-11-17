@@ -11,6 +11,7 @@ import {
   testDelayMinutes,
   type ReminderTest,
 } from '../../lib/reminders';
+import { colors, fonts, stackedFontScale, text } from '../../theme';
 
 const time = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
@@ -20,20 +21,6 @@ const recordSourceText = {
   'inactive-event': 'Salvo enquanto o app iniciava ou estava inativo.',
   'active-event': 'Salvo com o app em primeiro plano.',
   startup: 'Salvo ao recuperar a última ação.',
-};
-
-const colors = {
-  surface: '#F8F5F7',
-  white: '#FFFFFF',
-  ink: '#1F1A1E',
-  graphite: '#4A4248',
-  divider: '#E6DFE4',
-  orchid50: '#FBF3F8',
-  orchid800: '#7E3369',
-  orchid900: '#4E1F41',
-  leaf50: '#F2F8EE',
-  leaf200: '#CDE5C0',
-  leaf900: '#1E4214',
 };
 
 export function ReminderTestScreen({ useBrandFont }: { useBrandFont: boolean }) {
@@ -141,7 +128,7 @@ export function ReminderTestScreen({ useBrandFont }: { useBrandFont: boolean }) 
               <Text style={[styles.body, regular]}>Nenhum lembrete agendado.</Text>
             ) : latest.takenAt == null ? (
               <>
-                <View style={[styles.resultRow, fontScale > 1.3 && styles.stackedResult]}>
+                <View style={[styles.resultRow, fontScale > stackedFontScale && styles.stackedResult]}>
                   <Clock3 color={colors.orchid800} size={28} strokeWidth={2.5} accessible={false} />
                   <Text style={[styles.result, bold]}>
                     {latest.revision > 0 ? 'Lembrete adiado' : 'Lembrete agendado'}
@@ -151,7 +138,7 @@ export function ReminderTestScreen({ useBrandFont }: { useBrandFont: boolean }) 
               </>
             ) : (
               <>
-                <View style={[styles.resultRow, fontScale > 1.3 && styles.stackedResult]}>
+                <View style={[styles.resultRow, fontScale > stackedFontScale && styles.stackedResult]}>
                   <CircleCheck color={colors.leaf900} size={28} strokeWidth={2.5} accessible={false} />
                   <Text style={[styles.result, styles.recordedText, bold]}>Tomei registrado</Text>
                 </View>
@@ -182,9 +169,9 @@ const styles = StyleSheet.create({
   page: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: 22 },
   logo: { width: 184, height: 52 },
   header: { gap: 8 },
-  title: { color: colors.orchid800, fontSize: 30, lineHeight: 36 },
-  body: { color: colors.graphite, fontSize: 18, lineHeight: 26 },
-  support: { color: colors.graphite, fontSize: 16, lineHeight: 22 },
+  title: { color: colors.orchid800, ...text.screen },
+  body: { color: colors.graphite, ...text.body },
+  support: { color: colors.graphite, ...text.support },
   button: {
     minHeight: 64,
     borderRadius: 16,
@@ -195,17 +182,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   buttonPressed: { backgroundColor: colors.orchid900 },
-  buttonLabel: { color: colors.white, fontSize: 20, lineHeight: 26, textAlign: 'center' },
-  error: { color: colors.orchid900, backgroundColor: colors.orchid50, padding: 16, borderRadius: 12, fontSize: 18, lineHeight: 26 },
+  buttonLabel: { color: colors.white, ...text.button, textAlign: 'center' },
+  error: { color: colors.orchid900, backgroundColor: colors.orchid50, padding: 16, borderRadius: 12, ...text.body },
   card: { backgroundColor: colors.white, borderColor: colors.divider, borderWidth: 1, borderRadius: 20, padding: 20, gap: 8 },
-  cardTitle: { color: colors.ink, fontSize: 22, lineHeight: 28 },
+  cardTitle: { color: colors.ink, ...text.title },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stackedResult: { flexDirection: 'column', alignItems: 'flex-start' },
-  result: { color: colors.orchid800, fontSize: 22, lineHeight: 28, flexShrink: 1 },
+  result: { color: colors.orchid800, ...text.title, flexShrink: 1 },
   recordedCard: { backgroundColor: colors.leaf50, borderColor: colors.leaf200 },
   recordedText: { color: colors.leaf900 },
   guide: { borderTopWidth: 1, borderColor: colors.divider, paddingTop: 18, gap: 8 },
-  brandRegular: { fontFamily: 'AtkinsonHyperlegibleNext_400Regular' },
-  brandBold: { fontFamily: 'AtkinsonHyperlegibleNext_700Bold' },
+  brandRegular: { fontFamily: fonts.regular },
+  brandBold: { fontFamily: fonts.bold },
   systemBold: { fontWeight: '700' },
 });

@@ -83,6 +83,9 @@ starting value: keep each one in a single setting.
   development device is Android; iOS is tested through TestFlight and published only after it has been tested on a
   real iPhone. `src/features/<feature>` holds a feature's screens and logic, `src/components` the shared UI, `src/lib`
   the API client and device helpers.
+- Colors, fonts and text sizes come from `src/theme.ts`; the brand rules behind them (logo use, contrast, how text
+  grows with the system font) are in `docs/marca/README.md`. Above `stackedFontScale`, side-by-side layouts stack:
+  screens scroll only vertically.
 - Reuse the installed development client with Metro for TypeScript and UI changes. Rebuild it to test changes to
   native dependencies or configuration. Batch changes for standalone preview builds when testing without Metro,
   such as offline reminders with the app closed. EAS keeps and increments the build numbers (`appVersionSource`
