@@ -4,14 +4,20 @@
   "main": "index.ts",
   "dependencies": {
     "@expo-google-fonts/atkinson-hyperlegible-next": "^0.4.1",
+    "@react-native-google-signin/google-signin": "^17.0.0",
     "@react-navigation/bottom-tabs": "^7.22.0",
     "@react-navigation/native": "^7.5.2",
     "@react-navigation/native-stack": "^7.21.1",
     "expo": "~58.0.25",
+    "expo-apple-authentication": "~58.0.3",
+    "expo-background-task": "~58.0.13",
+    "expo-constants": "~58.0.16",
     "expo-crypto": "~58.0.8",
     "expo-dev-client": "~58.0.20",
     "expo-font": "~58.0.12",
+    "expo-network": "~58.0.5",
     "expo-notifications": "~58.1.9",
+    "expo-secure-store": "~58.0.3",
     "expo-sqlite": "~58.0.17",
     "expo-status-bar": "~58.0.5",
     "expo-system-ui": "~58.0.7",
@@ -31,6 +37,7 @@
     "eslint-config-expo": "~58.0.4",
     "jest": "~30.5.2",
     "jest-expo": "~58.0.14",
+    "orval": "^8.48.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -38,7 +45,9 @@
     "android": "expo start --dev-client --android",
     "ios": "expo start --dev-client --ios",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "api": "node scripts/fetch-openapi.mjs && orval",
+    "api:generate": "orval"
   },
   "jest": {
     "preset": "jest-expo"

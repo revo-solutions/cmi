@@ -18,6 +18,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.revosolutions.cmi",
+      "usesAppleSignIn": true,
       "entitlements": {
         "com.apple.developer.usernotifications.time-sensitive": true
       }
@@ -38,9 +39,13 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#7E3369",
-          "enableRemoteNotifications": false
+          "enableRemoteNotifications": true,
+          "enableBackgroundRemoteNotifications": true
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-background-task",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

@@ -15,6 +15,7 @@ import { nextDose, type Dose } from '../medications/doses';
 import { formatClock, formatDay } from '../medications/format';
 import { useToday } from '../medications/useToday';
 import { ReminderPermissionCard } from './ReminderPermissionCard';
+import { SyncStatusCard } from './SyncStatusCard';
 
 export function TodayScreen() {
   const navigation = useNavigation();
@@ -25,6 +26,7 @@ export function TodayScreen() {
   return (
     <Screen title="Hoje" subtitle={formatDay(date)} onProfile={() => navigation.navigate('Profile')}>
       <ReminderPermissionCard />
+      <SyncStatusCard />
 
       {doses && !hasMedications && (
         <Card>

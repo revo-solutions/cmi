@@ -21,6 +21,10 @@ import { deleteMedication, saveMedication, setPaused, useMedications } from './s
 
 type Props = StaticScreenProps<{ id?: string }>;
 
+// The server's MedicationModelValidator limits; a medication past them would be refused and hold up the queue.
+const maxTextLength = 200;
+const maxTimesPerMedication = 24;
+
 // Adding or editing a medication (canvas, "Editar remédio"). An edit waits for the medication to load, so the form
 // starts from it.
 export function MedicationFormScreen({ route }: Props) {
@@ -55,6 +59,7 @@ function MedicationForm({ medication, medications }: { medication: Medication | 
     const others = countDailyReminders(medications.filter((m) => m.id !== id));
     const problem = !name.trim() ? 'Escreva o nome do remédio.'
       : formatted.length === 0 ? 'Adicione pelo menos um horário.'
+      : formatted.length > maxTimesPerMedication ? `Cada remédio pode ter até ${maxTimesPerMedication} horários.`
       : new Set(formatted).size < formatted.length ? 'Há dois horários iguais. Remova um deles.'
       : others + formatted.length > maxDailyReminders ? `O celular guarda até ${maxDailyReminders} lembretes por dia. Remova algum horário.`
       : '';
@@ -97,8 +102,10 @@ function MedicationForm({ medication, medications }: { medication: Medication | 
 
   return (
     <Screen title={id ? 'Editar remédio' : 'Novo remédio'} onBack={() => navigation.goBack()}>
-      <TextField label="Nome do remédio" value={name} onChangeText={setName} autoCapitalize="sentences" />
-      <TextField label="Dose e como tomar (opcional)" value={dose} onChangeText={setDose} placeholder="50 mg, 1 comprimido" />
+      <TextField label="Nome do remédio" value={name} onChangeText={setName} autoCapitalize="sentences" maxLength={maxTextLength} />
+      <TextField
+        label="Dose e como tomar (opcional)" value={dose} onChangeText={setDose} placeholder="50 mg, 1 comprimido" maxLength={maxTextLength}
+      />
 
       <View style={styles.section}>
         <AppText variant="title" accessibilityRole="header">Horários</AppText>

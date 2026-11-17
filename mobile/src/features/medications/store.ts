@@ -1,6 +1,10 @@
 import { randomUUID } from 'expo-crypto';
+import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { getDatabase, useRows } from '../../lib/db';
+import { getDatabase, useRows, writeTransaction } from '../../lib/db';
+import { enqueue } from '../../lib/outbox';
+import { canEditAccount, localAccountId, SessionRequiredError } from '../../lib/session';
+import { requestSync } from '../../lib/sync';
 import { sameTimes, type DoseRecord, type Medication, type Period } from './doses';
 
 type MedicationRow = {
@@ -16,7 +20,9 @@ type MedicationRow = {
 
 type PeriodRow = { id: string; medication_id: string; starts_at: string; times: string; paused: number };
 
-type DoseRecordRow = { id: string; medication_id: string; scheduled_date: string; scheduled_time: string; taken_at: string | null };
+type DoseRecordRow = {
+  id: string; medication_id: string; scheduled_date: string; scheduled_time: string; taken_at: string | null; updated_at: string;
+};
 
 const medicationsSql = 'SELECT * FROM medications ORDER BY name COLLATE NOCASE';
 const periodsSql = 'SELECT * FROM medication_periods';
@@ -68,28 +74,58 @@ export type MedicationInput = {
   sharedWithContact: boolean;
 };
 
-// A new medication, or a change to its times, starts a period; a name, dose or sharing edit doesn't.
+function updatedAfter(previous?: string) {
+  return new Date(Math.max(Date.now(), previous ? Date.parse(previous) + 1 : 0)).toISOString();
+}
+
+function apiTime(time: string) {
+  return `${time}:00`;
+}
+
+async function queueMedication(transaction: SQLiteDatabase, row: MedicationRow | null) {
+  if (row) {
+    const medication = toMedication(row);
+    await enqueue(transaction, 'medications', { ...medication, times: medication.times.map(apiTime) });
+  }
+}
+
+async function changeMedication(change: (transaction: SQLiteDatabase) => Promise<void>) {
+  const accountId = await localAccountId();
+  await writeTransaction(async (transaction) => {
+    if (!canEditAccount(accountId)) {
+      throw new SessionRequiredError();
+    }
+    await change(transaction);
+  });
+  void requestSync();
+}
+
+// A new medication or a change to its times starts a period.
 export async function saveMedication(id: string | null, input: MedicationInput) {
-  const db = await getDatabase();
-  const now = new Date().toISOString();
   const times = [...input.times].sort();
   const medicationId = id ?? randomUUID();
 
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await changeMedication(async (transaction) => {
     const existing = id ? await transaction.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', id) : null;
+    if (id && (!existing || existing.deleted)) {
+      return;
+    }
+    const now = updatedAfter(existing?.updated_at);
     if (!existing) {
-      await transaction.runAsync(
-        'INSERT INTO medications (id, name, dose, times, shared_with_contact, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      const row = await transaction.getFirstAsync<MedicationRow>(
+        'INSERT INTO medications (id, name, dose, times, shared_with_contact, updated_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING *',
         medicationId, input.name, input.dose, JSON.stringify(times), input.sharedWithContact ? 1 : 0, now,
       );
+      await queueMedication(transaction, row);
       await addPeriod(transaction, medicationId, now, times, false);
       return;
     }
 
-    await transaction.runAsync(
-      'UPDATE medications SET name = ?, dose = ?, times = ?, shared_with_contact = ?, updated_at = ? WHERE id = ?',
+    const row = await transaction.getFirstAsync<MedicationRow>(
+      'UPDATE medications SET name = ?, dose = ?, times = ?, shared_with_contact = ?, updated_at = ? WHERE id = ? RETURNING *',
       input.name, input.dose, JSON.stringify(times), input.sharedWithContact ? 1 : 0, now, medicationId,
     );
+    await queueMedication(transaction, row);
     if (!sameTimes(JSON.parse(existing.times) as string[], times)) {
       await addPeriod(transaction, medicationId, now, times, existing.paused === 1);
     }
@@ -99,54 +135,74 @@ export async function saveMedication(id: string | null, input: MedicationInput) 
 }
 
 export async function setPaused(id: string, paused: boolean) {
-  const db = await getDatabase();
-  const now = new Date().toISOString();
-
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await changeMedication(async (transaction) => {
     const existing = await transaction.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', id);
-    if (!existing || (existing.paused === 1) === paused) {
+    if (!existing || existing.deleted || (existing.paused === 1) === paused) {
       return;
     }
-
-    await transaction.runAsync('UPDATE medications SET paused = ?, updated_at = ? WHERE id = ?', paused ? 1 : 0, now, id);
+    const now = updatedAfter(existing.updated_at);
+    const row = await transaction.getFirstAsync<MedicationRow>(
+      'UPDATE medications SET paused = ?, updated_at = ? WHERE id = ? RETURNING *', paused ? 1 : 0, now, id,
+    );
+    await queueMedication(transaction, row);
     await addPeriod(transaction, id, now, JSON.parse(existing.times) as string[], paused);
   });
 }
 
-// Kept as a tombstone: its dose history still points at it, and its doses stop at the deletion.
+// Kept as a tombstone because dose records point at it.
 export async function deleteMedication(id: string) {
-  const db = await getDatabase();
-  await db.runAsync('UPDATE medications SET deleted = 1, updated_at = ? WHERE id = ?', new Date().toISOString(), id);
+  await changeMedication(async (transaction) => {
+    const existing = await transaction.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', id);
+    if (!existing || existing.deleted) {
+      return;
+    }
+    const row = await transaction.getFirstAsync<MedicationRow>(
+      'UPDATE medications SET deleted = 1, updated_at = ? WHERE id = ? RETURNING *', updatedAfter(existing.updated_at), id,
+    );
+    await queueMedication(transaction, row);
+  });
 }
 
-type Transaction = Parameters<Parameters<Awaited<ReturnType<typeof getDatabase>>['withExclusiveTransactionAsync']>[0]>[0];
-
-async function addPeriod(transaction: Transaction, medicationId: string, startsAt: string, times: string[], paused: boolean) {
+async function addPeriod(transaction: SQLiteDatabase, medicationId: string, startsAt: string, times: string[], paused: boolean) {
+  const id = randomUUID();
   await transaction.runAsync(
     'INSERT INTO medication_periods (id, medication_id, starts_at, times, paused, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-    randomUUID(), medicationId, startsAt, JSON.stringify(times), paused ? 1 : 0, startsAt,
+    id, medicationId, startsAt, JSON.stringify(times), paused ? 1 : 0, startsAt,
   );
+  await enqueue(transaction, 'medicationPeriods', { id, medicationId, startsAt, times: times.map(apiTime), paused, updatedAt: startsAt });
 }
 
-// "Tomei" keeps the first tap: the same action delivered twice, by the notification task and the listener, records
-// one dose. Undoing it (takenAt null) clears it.
+// A duplicated action keeps the first tap, and undo preserves the record's ID.
 export async function recordDose(medicationId: string, date: string, time: string, takenAt: string | null) {
-  const db = await getDatabase();
-  const now = new Date().toISOString();
-
-  if (takenAt) {
-    await db.runAsync(
+  const accountId = await localAccountId();
+  let recorded = false;
+  await writeTransaction(async (transaction) => {
+    if (!canEditAccount(accountId) || !await transaction.getFirstAsync('SELECT id FROM medications WHERE id = ?', medicationId)) {
+      return;
+    }
+    const existing = await transaction.getFirstAsync<DoseRecordRow>(
+      'SELECT * FROM dose_records WHERE medication_id = ? AND scheduled_date = ? AND scheduled_time = ?',
+      medicationId, date, time,
+    );
+    if (Boolean(takenAt) === Boolean(existing?.taken_at)) {
+      return;
+    }
+    const updatedAt = updatedAfter(existing?.updated_at);
+    const id = existing?.id ?? randomUUID();
+    await transaction.runAsync(
       `INSERT INTO dose_records (id, medication_id, scheduled_date, scheduled_time, taken_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT (medication_id, scheduled_date, scheduled_time)
-       DO UPDATE SET taken_at = excluded.taken_at, updated_at = excluded.updated_at WHERE taken_at IS NULL`,
-      randomUUID(), medicationId, date, time, takenAt, now,
+       DO UPDATE SET taken_at = excluded.taken_at, updated_at = excluded.updated_at`,
+      id, medicationId, date, time, takenAt, updatedAt,
     );
-  } else {
-    await db.runAsync(
-      'UPDATE dose_records SET taken_at = NULL, updated_at = ? WHERE medication_id = ? AND scheduled_date = ? AND scheduled_time = ?',
-      now, medicationId, date, time,
-    );
+    await enqueue(transaction, 'doseRecords', {
+      id, medicationId, scheduledDate: date, scheduledTime: apiTime(time), takenAt, updatedAt,
+    });
+    recorded = true;
+  });
+  if (recorded) {
+    void requestSync();
   }
 }
 

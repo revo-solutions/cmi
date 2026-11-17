@@ -18,6 +18,7 @@ import {
   setNotificationChannelAsync,
   setNotificationHandler,
   type NotificationResponse,
+  type Notification,
   type NotificationTaskPayload,
 } from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
@@ -34,6 +35,8 @@ import {
   type ReminderKey,
 } from '../features/medications/reminderPlan';
 import { isDoseTaken, listMedications, recordDose } from '../features/medications/store';
+import { canEditAccount, localAccountId } from './session';
+import { requestSync } from './sync';
 
 // The one interface between the app and the system's notifications (AGENTS.md, "Mobile"). Reminders are local and
 // work offline: a daily repeating trigger per medication and time, with "Tomei" and "Lembrar depois".
@@ -82,6 +85,10 @@ export async function reminderPermission(ask: boolean): Promise<ReminderPermissi
 
 // Makes the scheduled daily reminders match the medications. Call it on opening and after every change.
 export async function reconcileReminders() {
+  const accountId = await localAccountId();
+  if (!accountId || await reminderPermission(false) !== 'granted') {
+    return;
+  }
   const wanted = dailyReminders(await listMedications());
   const scheduled = (await getAllScheduledNotificationsAsync()).map((request) => ({
     identifier: request.identifier,
@@ -91,9 +98,15 @@ export async function reconcileReminders() {
   const plan = planReminders(wanted, scheduled);
 
   for (const identifier of plan.cancel) {
+    if (!canEditAccount(accountId)) {
+      return;
+    }
     await cancelScheduledNotificationAsync(identifier);
   }
   for (const reminder of plan.schedule) {
+    if (!canEditAccount(accountId)) {
+      return;
+    }
     const [hour, minute] = reminder.time.split(':').map(Number);
     await scheduleNotificationAsync({
       identifier: reminder.identifier,
@@ -116,8 +129,9 @@ export async function undoDose(medicationId: string, date: string, time: string)
 
 // "Lembrar depois": one more reminder for the same dose, which keeps its original time.
 export async function snoozeDose({ medicationId, time, date }: ReminderKey & { date: string }) {
+  const accountId = await localAccountId();
   const medication = (await listMedications()).find((m) => m.id === medicationId);
-  if (!medication) {
+  if (!medication || !canEditAccount(accountId)) {
     return;
   }
 
@@ -131,7 +145,12 @@ export async function snoozeDose({ medicationId, time, date }: ReminderKey & { d
 // The dose a notification is about. A daily reminder's day is the day it rang; a snooze carries its dose's day.
 export function doseOf(response: NotificationResponse): (ReminderKey & { date: string }) | null {
   const key = parseIdentifier(response.notification.request.identifier);
-  return key ? { ...key, date: key.date ?? localDate(new Date(response.notification.date)) } : null;
+  return key ? { ...key, date: key.date ?? notificationDay(response.notification) } : null;
+}
+
+function notificationDay(notification: Notification) {
+  // Expo's native iOS payload gives seconds, while Android gives milliseconds.
+  return localDate(new Date(notification.date * (Platform.OS === 'ios' ? 1_000 : 1)));
 }
 
 async function handleAction(response: NotificationResponse) {
@@ -198,14 +217,20 @@ TaskManager.defineTask<NotificationTaskPayload>(task, async ({ data, error }) =>
     console.warn('A tarefa de notificações falhou.', error);
   } else if (data && 'actionIdentifier' in data) {
     await handleAction(data);
+    if (data.actionIdentifier === takeAction) {
+      await requestSync();
+    }
   }
 });
 
 // With the app open, a reminder for a dose already taken stays quiet.
 setNotificationHandler({
   handleNotification: async (notification) => {
+    if (notification.request.content.data?.type === 'ping') {
+      return { shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false };
+    }
     const key = parseIdentifier(notification.request.identifier);
-    const taken = key ? await isDoseTaken(key.medicationId, key.date ?? localDate(new Date(notification.date)), key.time) : false;
+    const taken = key ? await isDoseTaken(key.medicationId, key.date ?? notificationDay(notification), key.time) : false;
 
     return { shouldShowBanner: !taken, shouldShowList: !taken, shouldPlaySound: !taken, shouldSetBadge: false };
   },
