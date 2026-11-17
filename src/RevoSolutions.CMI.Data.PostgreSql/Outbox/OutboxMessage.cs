@@ -12,5 +12,11 @@ public class OutboxMessage
 
     public DateTime? ProcessedOn { get; set; }
 
+    // The last failure. A message still unprocessed with OutboxProcessor.MaxAttempts attempts was given up on.
     public string? Error { get; set; }
+
+    public int Attempts { get; set; }
+
+    // Null until the first failure; the message waits until then to be tried again.
+    public DateTime? NextAttemptAt { get; set; }
 }

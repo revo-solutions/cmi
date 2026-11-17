@@ -46,7 +46,15 @@ public class SendNoticeHandler : IDomainEventHandler<NoticeCreatedDomainEvent>
 
         if (await Message(notice) is { } send)
         {
-            notice.MarkSent(await _sender.Send(send.To, send.Message, cancellationToken), DateTime.UtcNow);
+            try
+            {
+                notice.MarkSent(await _sender.Send(send.To, send.Message, cancellationToken), DateTime.UtcNow);
+            }
+            catch (NoticeRefusedException)
+            {
+                // The app shows a failed SOS at once and offers the call, instead of waiting on retries.
+                notice.MarkFailed();
+            }
         }
         else
         {

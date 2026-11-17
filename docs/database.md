@@ -106,7 +106,9 @@ erDiagram
         text Content "evento serializado em JSON"
         timestamptz OccurredOn
         timestamptz ProcessedOn "opcional"
-        text Error "opcional"
+        text Error "última falha, opcional"
+        integer Attempts "tentativas com falha"
+        timestamptz NextAttemptAt "próxima tentativa, opcional"
     }
 ```
 

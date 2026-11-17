@@ -1,6 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using RevoSolutions.CMI.Data.PostgreSql.Contexts;
+using RevoSolutions.CMI.Data.PostgreSql.Outbox;
+using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
 using RevoSolutions.CMI.Domain.Models;
 using Xunit;
@@ -58,6 +63,45 @@ public class SosTests
     }
 
     [Fact]
+    public async Task An_sos_whatsapp_refuses_fails_at_once_and_is_not_tried_again()
+    {
+        var person = await Person(premium: true);
+        _factory.WhatsApp.Refuse(person.WhatsApp, HttpStatusCode.BadRequest);
+        var sos = new SosModel(Guid.NewGuid(), RequestedAt);
+        await Send(person, sos);
+
+        await _factory.ProcessOutbox();
+        await _factory.ProcessOutbox();
+
+        (await Status(person, sos.Id)).Should().Be(NoticeStatus.Failed);
+        _factory.WhatsApp.AttemptsTo(person.WhatsApp).Should().Be(2, "the link reply and one try at the SOS");
+    }
+
+    [Fact]
+    public async Task An_sos_that_fails_for_now_waits_to_be_tried_again()
+    {
+        var person = await Person(premium: true);
+        _factory.WhatsApp.Refuse(person.WhatsApp, HttpStatusCode.ServiceUnavailable);
+        var sos = new SosModel(Guid.NewGuid(), RequestedAt);
+        await Send(person, sos);
+
+        await _factory.ProcessOutbox();
+        await _factory.ProcessOutbox();
+
+        (await Status(person, sos.Id)).Should().BeNull();
+        _factory.WhatsApp.AttemptsTo(person.WhatsApp).Should().Be(2, "the link reply and one try at the SOS");
+        var message = await OutboxMessageFor(sos.Id);
+        message.Attempts.Should().Be(1);
+        message.NextAttemptAt.Should().BeAfter(DateTime.UtcNow);
+
+        _factory.WhatsApp.Accept(person.WhatsApp);
+        await RetryNow(message.Id);
+        await _factory.ProcessOutbox();
+
+        (await Status(person, sos.Id)).Should().Be(NoticeStatus.Sent);
+    }
+
+    [Fact]
     public async Task Without_premium_or_a_linked_contact_the_sos_is_not_sent_and_the_app_is_told()
     {
         var free = await Person(premium: false);
@@ -91,6 +135,23 @@ public class SosTests
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<SosStatusModel>(CmiApiFactory.Json))!;
+    }
+
+    private async Task<OutboxMessage> OutboxMessageFor(Guid sosId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CmiDbContext>();
+        var noticeId = await db.Set<Notice>().Where(n => n.Key.EndsWith($":{sosId}")).Select(n => n.Id).SingleAsync();
+
+        return await db.OutboxMessages.AsNoTracking().SingleAsync(m => m.Content.Contains(noticeId.ToString()));
+    }
+
+    private async Task RetryNow(Guid outboxMessageId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<CmiDbContext>().OutboxMessages
+            .Where(m => m.Id == outboxMessageId)
+            .ExecuteUpdateAsync(m => m.SetProperty(x => x.NextAttemptAt, DateTime.UtcNow.AddSeconds(-1)));
     }
 
     private static async Task<NoticeStatus?> Status(PersonSetup person, Guid id) =>

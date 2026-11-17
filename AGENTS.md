@@ -194,6 +194,10 @@ How it is built:
   says the push no longer reaches the app, `NoContact` otherwise.
 - `NoticeWorker` (every minute, one scope per account) and `OutboxWorker` (every 5 seconds) are the hosted services.
   Tests remove both and call `NoticeService` and `OutboxProcessor` themselves.
+- A message whose handler throws is tried again after 10 seconds, then twice as long each time, and given up after
+  `OutboxProcessor.MaxAttempts` (10, about an hour and a half); one still unprocessed with that many `Attempts` was
+  given up on, and its last `Error` says why. A failing message waits out its `NextAttemptAt` instead of holding back
+  the ones behind it.
 - Only Premium accounts whose contact linked up on WhatsApp and didn't answer PARAR are checked (`AccountsToCheck`),
   and only medications with `SharedWithContact` (not paused, not deleted) count. The handler checks Premium and the
   contact again before sending; a notice decided before Premium ended is never sent. Abandonment counts from
@@ -221,6 +225,9 @@ phone numbers or message text.
 - A new phone for the contact drops the link and draws a new code: another person links up themselves.
 - The webhook's delivery statuses update the notice with that `MessageId`, only forward, since Meta may send them out
   of order. Failures are also logged with Meta's error codes.
+- Meta answering 400 to a send means it won't take that message as it is (an unapproved template, a wrong value, a
+  number it rejects): `WhatsAppNoticeSender` throws `NoticeRefusedException`, and the notice is `Failed` at once,
+  with no retry. Any other error (a rate limit, an expired token, an outage) goes back to the outbox's retries.
 - Tests replace Meta with `FakeWhatsApp`, an `HttpMessageHandler` that records what the API sends;
   `CmiApiFactory.ReceiveWhatsAppStatus` plays a delivery status.
 
@@ -234,7 +241,8 @@ phone's own plan) never reaches the server.
   within seconds through `SendNoticeHandler`, like any notice: `pedido_de_ajuda`, with the person and the day and
   time on their clock.
 - `GET sos/{id}` is the status the app shows: null while it waits for the outbox, then `NotSent` (the app offers the
-  call and the SMS), `Sent`, `Delivered`, `Read` or `Failed`.
+  call and the SMS), `Sent`, `Delivered`, `Read` or `Failed`. Null for more than a few seconds means the send is
+  failing and being retried, or there is no connection: the app offers the call then too.
 - A device that is no longer the active one may still ask for help.
 
 ### Premium
@@ -339,7 +347,8 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
   its Authorization header.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
-- A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
+- Processed outbox messages and expired refresh tokens are never deleted; add a cleanup when the tables grow.
+- SOS over WhatsApp has no cap per account; each one is paid. Add one if a bug or abuse ever sends too many.
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). The API
   image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum of one replica, as in
   TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The

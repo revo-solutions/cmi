@@ -14,6 +14,12 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Outbox;
 /// </summary>
 public sealed class OutboxProcessor
 {
+    // A failing message waits twice as long before each new try and is given up after MaxAttempts, about an hour and a
+    // half later. So one that can never go out neither retries forever nor holds back the messages behind it.
+    public const int MaxAttempts = 10;
+
+    private static readonly TimeSpan FirstRetry = TimeSpan.FromSeconds(10);
+
     private readonly CmiDbContext _context;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OutboxProcessor> _logger;
@@ -27,8 +33,9 @@ public sealed class OutboxProcessor
 
     public async Task<int> ProcessPendingAsync(int batchSize = 50, CancellationToken cancellationToken = default)
     {
+        var now = DateTime.UtcNow;
         var pending = await _context.OutboxMessages
-            .Where(m => m.ProcessedOn == null)
+            .Where(m => m.ProcessedOn == null && m.Attempts < MaxAttempts && (m.NextAttemptAt == null || m.NextAttemptAt <= now))
             .OrderBy(m => m.OccurredOn)
             .Take(batchSize)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
@@ -66,6 +73,16 @@ public sealed class OutboxProcessor
             {
                 _logger.LogError(ex, "Failed to process outbox message {OutboxId}.", message.Id);
                 message.Error = ex.Message;
+                message.Attempts++;
+
+                if (message.Attempts < MaxAttempts)
+                {
+                    message.NextAttemptAt = now + (FirstRetry * Math.Pow(2, message.Attempts - 1));
+                }
+                else
+                {
+                    _logger.LogError("Gave up on outbox message {OutboxId} after {Attempts} attempts.", message.Id, message.Attempts);
+                }
             }
         }
 

@@ -51,6 +51,8 @@ public class Notice : EntityBase
 
     public void MarkNotSent() => Status ??= NoticeStatus.NotSent;
 
+    public void MarkFailed() => Status = NoticeStatus.Failed;
+
     // WhatsApp may report the statuses out of order; an earlier one never undoes a later one.
     public void UpdateDelivery(NoticeStatus status)
     {
