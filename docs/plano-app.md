@@ -117,18 +117,18 @@ Precisa da API acessível pelo celular: local, pela rede ou por um túnel, até 
       client IDs no [README do app](../mobile/README.md#login-e-push).
 - [x] Primeiro login num aparelho: `GET sync` preenche o SQLite antes de abrir a conta. Limpar os lembretes
       e dados da conta anterior antes de expor a nova.
-- [ ] Recuperar os lembretes da conta restaurada conforme as permissões locais, pela interface da fase 2.
-- [ ] Fila de saída na tabela `outbox`: mudanças em lote por `POST sync`, enviadas após cada mudança, ao abrir, ao
+- [x] Recuperar os lembretes da conta restaurada conforme as permissões locais, pela interface da fase 2.
+- [x] Fila de saída na tabela `outbox`: mudanças em lote por `POST sync`, enviadas após cada mudança, ao abrir, ao
       voltar a conexão e pelo `expo-background-task`, com novas tentativas. Gravar mudança e item de fila na mesma
       transação, enviar medicamentos antes das doses dependentes e preservar edições feitas durante um envio.
-- [ ] 409 na sincronização: tela "Sua conta foi aberta em outro celular", com **Usar neste celular**
+- [x] 409 na sincronização: tela "Sua conta foi aberta em outro celular", com **Usar neste celular**
       (`PUT account/active-device`). Suspender sync até reativar, preservar a fila e reativar como o `AGENTS.md` descreve.
 - [x] Sinal de vida (`POST sync/heartbeat`) ao abrir e em segundo plano, com a plataforma, o fuso IANA e o token do
       Expo. Ligar `enableRemoteNotifications`.
 - [x] Ping: tarefa de notificação em segundo plano (`expo-task-manager`; no iOS, `enableBackgroundRemoteNotifications`)
       que responde ao `{ "type": "ping" }` com um sinal de vida, sem mostrar nada.
 - [ ] Configurar OAuth, FCM e APNs e validar login, restauração, sessão offline, exclusão e ping em aparelhos reais.
-- [ ] Estado da fila visível: um aviso discreto quando há envios pendentes há muito tempo ou com falha.
+- [x] Estado da fila visível: um aviso discreto quando há envios pendentes há muito tempo ou com falha.
 - [x] Perfil: **Sair** (`POST auth/logout`) e **Excluir conta** (`DELETE account`), explicando a diferença.
       A exclusão pede confirmação e conexão; limpar dados locais, fila, lembretes e sessão após a API confirmar.
 

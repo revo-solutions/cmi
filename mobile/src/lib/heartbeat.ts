@@ -14,6 +14,7 @@ import { AppState, Platform } from 'react-native';
 import { DevicePlatform, syncHeartbeat } from '../api/generated/client';
 import { getSetting, setSetting } from './db';
 import { loadSession, withSession } from './session';
+import { flushOutbox, isSyncBlocked, rememberSyncConflict } from './sync';
 
 const periodicTask = 'cmi-background';
 const pingTask = 'cmi-push-ping';
@@ -24,12 +25,19 @@ let sending: Promise<boolean> | undefined;
 
 async function send() {
   const session = await loadSession();
-  if (!session || session.expired) {
+  if (!session || session.expired || await isSyncBlocked(session.accountId)) {
     return false;
   }
   const pushToken = await getSetting(pushTokenKey) || null;
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  await withSession((options) => syncHeartbeat({ platform, timeZone, pushToken }, options));
+  try {
+    await withSession((options) => syncHeartbeat({ platform, timeZone, pushToken }, options));
+  } catch (error) {
+    if (await rememberSyncConflict(error, session.accountId)) {
+      return false;
+    }
+    throw error;
+  }
   return true;
 }
 
@@ -39,12 +47,10 @@ function sendHeartbeat() {
 }
 
 defineTask(periodicTask, async () => {
-  try {
-    await sendHeartbeat();
-    return BackgroundTask.BackgroundTaskResult.Success;
-  } catch {
-    return BackgroundTask.BackgroundTaskResult.Failed;
-  }
+  const results = await Promise.allSettled([sendHeartbeat(), flushOutbox()]);
+  return results.some((result) => result.status === 'rejected')
+    ? BackgroundTask.BackgroundTaskResult.Failed
+    : BackgroundTask.BackgroundTaskResult.Success;
 });
 
 function isPing(payload: NotificationTaskPayload | undefined) {
@@ -101,8 +107,12 @@ async function updatePushToken() {
 }
 
 function onForeground() {
-  void sendHeartbeat().catch(() => undefined);
+  void requestHeartbeat();
   registeringPush ??= updatePushToken().catch(() => undefined).finally(() => { registeringPush = undefined; });
+}
+
+export function requestHeartbeat() {
+  return sendHeartbeat().catch(() => undefined);
 }
 
 export function useHeartbeat(accountId: string | undefined) {

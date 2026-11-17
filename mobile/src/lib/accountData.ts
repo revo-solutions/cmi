@@ -1,8 +1,13 @@
-import { cancelAllScheduledNotificationsAsync, dismissAllNotificationsAsync } from 'expo-notifications';
+import {
+  cancelAllScheduledNotificationsAsync, clearLastNotificationResponse, dismissAllNotificationsAsync,
+} from 'expo-notifications';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { SyncModel } from '../api/generated/client';
-import { getDatabase } from './db';
+import { writeTransaction } from './db';
+import { enqueue, recoverableDoses, type OutboxRow } from './outbox';
+
+export const blockedAccountKey = 'sync_blocked_account';
 
 async function clearRows(db: SQLiteDatabase) {
   await db.execAsync(`
@@ -13,28 +18,34 @@ async function clearRows(db: SQLiteDatabase) {
     DELETE FROM contact;
     DELETE FROM profile;
   `);
+  await db.runAsync('DELETE FROM settings WHERE key = ?', blockedAccountKey);
 }
 
 async function clearNotifications() {
   await cancelAllScheduledNotificationsAsync();
   await dismissAllNotificationsAsync();
+  clearLastNotificationResponse();
 }
 
 export async function hasPendingChanges() {
-  const db = await getDatabase();
-  return !!await db.getFirstAsync('SELECT id FROM outbox LIMIT 1');
+  let pending = false;
+  await writeTransaction(async (transaction) => {
+    pending = !!await transaction.getFirstAsync('SELECT id FROM outbox LIMIT 1');
+  });
+  return pending;
 }
 
 export async function clearAccountData() {
   await clearNotifications();
-  const db = await getDatabase();
-  await db.withExclusiveTransactionAsync(clearRows);
+  await writeTransaction(clearRows);
 }
 
-export async function restoreAccountData(snapshot: SyncModel) {
+export async function restoreAccountData(snapshot: SyncModel, keepDosesAfter?: number) {
   await clearNotifications();
-  const db = await getDatabase();
-  await db.withExclusiveTransactionAsync(async (transaction) => {
+  await writeTransaction(async (transaction) => {
+    const newer = keepDosesAfter === undefined ? [] : await transaction.getAllAsync<OutboxRow>(
+      'SELECT * FROM outbox WHERE id > ? AND type = ? ORDER BY id', keepDosesAfter, 'doseRecords',
+    );
     await clearRows(transaction);
     const profile = snapshot.profile;
     if (profile) {
@@ -64,6 +75,15 @@ export async function restoreAccountData(snapshot: SyncModel) {
         INSERT INTO dose_records (id, medication_id, scheduled_date, scheduled_time, taken_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `, dose.id, dose.medicationId, dose.scheduledDate, wallTime(dose.scheduledTime), dose.takenAt, dose.updatedAt);
+    }
+    for (const dose of recoverableDoses(newer, snapshot)) {
+      await transaction.runAsync(`
+        INSERT INTO dose_records (id, medication_id, scheduled_date, scheduled_time, taken_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT (medication_id, scheduled_date, scheduled_time)
+        DO UPDATE SET taken_at = excluded.taken_at, updated_at = excluded.updated_at
+      `, dose.id, dose.medicationId, dose.scheduledDate, wallTime(dose.scheduledTime), dose.takenAt, dose.updatedAt);
+      await enqueue(transaction, 'doseRecords', dose);
     }
     for (const contact of snapshot.contacts ?? []) {
       if (!contact.deleted) {

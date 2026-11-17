@@ -8,6 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from './components/AppText';
 import { Button } from './components/Button';
 import { Screen } from './components/Screen';
+import { DeviceConflictScreen } from './features/auth/DeviceConflictScreen';
 import { SignInScreen } from './features/auth/SignInScreen';
 import { HistoryScreen } from './features/medications/HistoryScreen';
 import { MedicationFormScreen } from './features/medications/MedicationFormScreen';
@@ -19,6 +20,7 @@ import { DisplayModeProvider } from './lib/displayMode';
 import { useHeartbeat } from './lib/heartbeat';
 import { onReminderOpened, reconcileReminders, recoverPendingAction, setUpReminders } from './lib/reminders';
 import { loadSession, useSession } from './lib/session';
+import { useOutboxSync, useSyncBlocked } from './lib/sync';
 import { colors, maxFontScale } from './theme';
 
 function tab(title: string, Icon: LucideIcon) {
@@ -62,6 +64,7 @@ const RootStack = createNativeStackNavigator({
     MedicationForm: MedicationFormScreen,
     History: HistoryScreen,
     Reminder: ReminderScreen,
+    DeviceConflict: DeviceConflictScreen,
   },
 });
 
@@ -85,7 +88,9 @@ function openReminder(reminder: OpenedReminder | null) {
   }
 }
 
-function AccountNavigation() {
+function AccountNavigation({ accountId }: { accountId: string }) {
+  const blocked = useSyncBlocked(accountId);
+
   useEffect(() => {
     setUpReminders()
       .then(recoverPendingAction)
@@ -98,7 +103,18 @@ function AccountNavigation() {
     };
   }, []);
 
-  return <Navigation ref={navigation} onReady={() => openReminder(waiting)} />;
+  useEffect(() => {
+    if (blocked && navigation.isReady()) {
+      navigation.navigate('DeviceConflict');
+    }
+  }, [blocked]);
+
+  return <Navigation ref={navigation} onReady={() => {
+    openReminder(waiting);
+    if (blocked) {
+      navigation.navigate('DeviceConflict');
+    }
+  }} />;
 }
 
 function SessionNavigation() {
@@ -106,6 +122,7 @@ function SessionNavigation() {
   const [failed, setFailed] = useState(false);
   const accountId = session && !session.expired ? session.accountId : undefined;
   useHeartbeat(accountId);
+  useOutboxSync(accountId);
 
   function open() {
     loadSession().catch(() => setFailed(true));
@@ -125,7 +142,7 @@ function SessionNavigation() {
       </Screen>
     );
   }
-  return accountId ? <AccountNavigation key={accountId} /> : <SignInScreen />;
+  return accountId ? <AccountNavigation key={accountId} accountId={accountId} /> : <SignInScreen />;
 }
 
 export function AppNavigation() {

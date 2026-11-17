@@ -103,12 +103,24 @@ async function open() {
 }
 
 let database: Promise<SQLiteDatabase> | undefined;
+let pendingWrite = Promise.resolve();
+const committed = new Set<() => void>();
 
 export function getDatabase() {
   return database ??= open().catch((error: unknown) => {
     database = undefined;
     throw error;
   });
+}
+
+export function writeTransaction(change: (transaction: SQLiteDatabase) => Promise<void>) {
+  const write = pendingWrite.then(async () => {
+    const db = await getDatabase();
+    await db.withExclusiveTransactionAsync(change);
+    committed.forEach((listener) => listener());
+  });
+  pendingWrite = write.catch(() => undefined);
+  return write;
 }
 
 // The rows of a query, read again whenever the database changes.
@@ -118,22 +130,27 @@ export function useRows<T>(sql: string, params: SQLiteBindValue[] = []) {
 
   useEffect(() => {
     let active = true;
+    let generation = 0;
     const values = JSON.parse(paramsKey) as SQLiteBindValue[];
     const load = async () => {
+      const current = ++generation;
       const db = await getDatabase();
       const result = await db.getAllAsync<T>(sql, values);
-      if (active) {
+      if (active && generation === current) {
         setRows(result);
       }
     };
 
-    load().catch((error: unknown) => console.warn('Não foi possível ler o banco local.', error));
-    const subscription = addDatabaseChangeListener(() => {
+    const refresh = () => {
       load().catch((error: unknown) => console.warn('Não foi possível ler o banco local.', error));
-    });
+    };
+    refresh();
+    committed.add(refresh);
+    const subscription = addDatabaseChangeListener(refresh);
 
     return () => {
       active = false;
+      committed.delete(refresh);
       subscription.remove();
     };
   }, [sql, paramsKey]);
@@ -146,11 +163,12 @@ export async function getSetting(key: string) {
   return (await db.getFirstAsync<{ value: string }>('SELECT value FROM settings WHERE key = ?', key))?.value ?? null;
 }
 
-export async function setSetting(key: string, value: string) {
-  const db = await getDatabase();
-  await db.runAsync(
-    'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
-    key,
-    value,
-  );
+export function setSetting(key: string, value: string) {
+  return writeTransaction(async (transaction) => {
+    await transaction.runAsync(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
+      key,
+      value,
+    );
+  });
 }

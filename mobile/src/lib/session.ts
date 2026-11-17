@@ -72,6 +72,15 @@ export function loadSession() {
   return loading;
 }
 
+export async function localAccountId() {
+  const current = await loadSession();
+  return closing ? undefined : current?.accountId;
+}
+
+export function canEditAccount(accountId: string | undefined) {
+  return !closing && !!accountId && session?.accountId === accountId;
+}
+
 async function saveSession(next: Session) {
   await setItemAsync(sessionKey, JSON.stringify(next), secureOptions);
   publish(next);

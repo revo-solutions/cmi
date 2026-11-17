@@ -119,15 +119,17 @@ starting value: keep each one in a single setting.
   `expo-notifications` plugin's `enableBackgroundRemoteNotifications`).
 - SQLite (`expo-sqlite`) on the device keeps the app working offline. Every change is synced to the server through
   the outgoing queue (see `docs/arquitetura.md`, "Sincronização"): records get a UUID and an updated-at on the
-  device, the last write wins, and only one device per account is active.
+  device, the last write wins, and only one device per account is active. The app saves a change and its queued
+  copy in the same transaction. It retries failed batches and acknowledges only the rows that were sent.
 - The device works out a dose's state on its own: **Pendente** until 1 hour after its time, **Registrado** once it
   has `taken_at` (even before it is uploaded), **Sem confirmação** after the deadline with no "Tomei". The hour is a
   constant that mirrors the server's `NoticeSettings.MissedDoseAfter` (`docs/escopo.md` keeps them one number). The
   6-hour contact rule stays on the server: it decides whether the family hears, not what the person sees, and the
   screen never says whether a notice went out.
-- "Usar neste celular" after a 409 uploads only the queued dose records, drops the queued medication, contact and
-  profile changes, and downloads the whole account again; the screen warns first. The server forgets a deleted
-  contact, so an old queued change would bring back a contact the other phone removed.
+- "Usar neste celular" after a 409 uploads queued doses for medications already on the server and uses the server's
+  ID if both phones recorded the same dose. It discards the other queued changes and restores the account from
+  the server; the screen warns first. A dose recorded during recovery stays in the queue if its medication exists
+  on the server. Restoring the server's copy keeps a contact removed on the other phone from coming back.
 - Login uses `@react-native-google-signin/google-signin` and `expo-apple-authentication`; the app exchanges the
   provider's token for the API's JWT and refresh token, kept in the system's secure storage.
   The app opens a stored session offline and serializes token rotation. First sign-in restores the account in one
