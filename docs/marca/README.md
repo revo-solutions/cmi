@@ -70,7 +70,9 @@ app a carrega de `@expo-google-fonts/atkinson-hyperlegible-next`.
 - Os tamanhos valem com a fonte padrão do celular. Tudo cresce com o ajuste do sistema, e nada fica abaixo de 16.
 - Tamanho grande de verdade só onde há ação: no lembrete, o horário (72) e o Tomei (30), além do SOS.
 - Rótulos das abas crescem até 1,15× e chips até 1,3× (`maxFontSizeMultiplier`); o resto acompanha o sistema sem
-  limite. O modo de letras grandes do app multiplica tudo por 1,25×.
+  limite. O modo de letras grandes do app multiplica tudo por 1,25× e reforça o contraste: o texto de apoio passa de
+  Grafite para Tinta, e as bordas de cartões e divisórias passam de Divisória para Contorno, com 2 dp. A paleta já
+  passa de 4,5:1 nos textos, então o modo não troca nenhuma outra cor.
 - Com a fonte acima de 130% (`fontScale` de `useWindowDimensions`), o que fica lado a lado passa a ficar empilhado. A
   tela rola só na vertical, nunca na horizontal.
 - Teste com a maior fonte do sistema. No Android 14 ou mais novo a ampliação não é linear: textos grandes crescem

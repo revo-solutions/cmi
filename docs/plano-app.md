@@ -18,60 +18,21 @@ não cobrem, ou algo que precisa da opinião de um idoso ou de um familiar antes
 em 150% da fonte, como a Hoje. As demais telas seguem os componentes da fase 1 e as telas que já existem, e são
 ajustadas direto no aparelho com o Metro.
 
-As decisões 6 e 7 vêm antes do esquema e das telas de doses, para que o histórico, o PDF e os avisos não reconstruam
-o passado com os dados de hoje. O cadastro e as doses podem ser implementados primeiro com SQLite (fases 1–2); conta
+Os períodos de pausa e de horários vêm antes do esquema e das telas de doses, para que o histórico, o PDF e os avisos
+não reconstruam o passado com os dados de hoje. O cadastro e as doses podem ser implementados primeiro com SQLite (fases 1–2); conta
 e sync tornam esses dados recuperáveis (fase 3). A configuração inicial integra as telas de remédios e contato (fases
 2 e 5). O aceite do WhatsApp depende também do Premium (fase 6); o PDF depende do histórico da fase 2 e do Premium.
 Telefones, artigos e conteúdo inicial podem avançar após a navegação. Preparar credenciais, lojas e modelos em
 paralelo com os lembretes.
 
-## Decisões antes de começar
+## Decisões
 
-Cada uma tem uma recomendação. Ao decidir, registre no `AGENTS.md` (seção Mobile) e tire daqui.
+As decisões tomadas antes de começar estão no `AGENTS.md` (seção Mobile e "Not done yet"), no escopo e no guia da
+marca. Ao tomar uma nova, registre lá e tire daqui. Falta uma:
 
-1. **Navegação.** React Navigation (`native-stack` e `bottom-tabs`) com a configuração estática num arquivo só, para
-   manter as telas em `src/features/<feature>`. O `expo-router` traria a pasta `app/` com uma rota por arquivo, uma
-   segunda convenção de pastas sem ganho para um app de poucas telas.
-2. **Estado.** Sem biblioteca de estado. O SQLite é a fonte da verdade, e as telas leem por hooks pequenos que
-   reconsultam quando o banco avisa uma mudança, como o `onReminderTestChange` de hoje.
-3. **Artigos em Markdown.** Um script (`npm run content`) converte `content/` num módulo TypeScript versionado, e o CI
-   confere se ele está atualizado. A tela desenha um subconjunto pequeno (títulos, parágrafos, listas, negrito) com os
-   componentes do app, para respeitar a fonte do sistema e o TalkBack. Uma biblioteca de Markdown só entra se o
-   conteúdo pedir mais que isso.
-4. **Campos de horário.** Os horários do remédio usam campos grandes de hora e minuto com botões de mais e menos, como
-   a data de nascimento, em vez do relógio do sistema.
-5. **Alto contraste.** A marca define só o modo de letras grandes (1,25×). A paleta já passa de 4,5:1 nos textos, então
-   o "alto contraste" do questionário pode ser só bordas mais fortes e nenhum texto em Grafite. Decidir com a marca
-   antes da fase 4.
-6. **Histórico de pausas e de horários.** Antes da fase 1, porque define o esquema do SQLite, o que editar, pausar e
-   retomar gravam na fase 2 e o que o histórico mostra. Hoje o servidor guarda só os horários e a pausa vigentes, e
-   `Medication.DosesBetween` reconstrói o passado com eles, descartando as doses anteriores ao `UpdatedAt`. Como o
-   `UpdatedAt` muda em qualquer edição (até no texto da dose ou no compartilhamento), o resumo das 20h e os avisos de
-   dose sem confirmação já perdem doses do dia: ligar o compartilhamento às 19h tira do resumo as doses da manhã,
-   inclusive as registradas. Recomendação: o aparelho grava cada mudança de horários e cada pausa como um período,
-   esses períodos sobem na sincronização (uma lista nova no `SyncModel`), e o `DosesBetween` passa a usá-los no lugar
-   do corte pelo `UpdatedAt`. Assim histórico, PDF, resumo e avisos têm uma só definição de dose esperada, e quem
-   troca de celular não vê pausas antigas como esquecimento, o que o escopo proíbe.
-7. **Estado da dose.** Depois da decisão 6, que diz quais doses eram esperadas, e antes da fase 2. `GET sync` retorna
-   horário e `TakenAt`, sem estado calculado, e o "sem confirmação" do servidor existe só como `Notice`, decidido também
-   pelo contato nas 6 horas anteriores, que o aparelho não conhece. O aparelho calcula o estado a partir dos dados
-   locais: uma dose esperada é **Pendente** até 1 hora depois do horário, **Registrado** com `taken_at` (mesmo com o
-   envio pendente) e **Sem confirmação** depois do prazo sem **Tomei**. O prazo é uma constante no app igual a
-   `NoticeSettings.MissedDoseAfter`; o escopo diz que é o mesmo número nos dois lados. A regra das 6 horas fica só no
-   servidor: ela decide se o familiar é avisado, não o que a pessoa vê. O estado da tela não significa que um aviso foi
-   enviado.
-8. **Reativação do aparelho.** Antes da fase 3. O `SyncService` cria todo contato desconhecido que não chega como
-   excluído, e o servidor esquece o contato removido; uma edição antiga na fila de um celular inativo recriaria o
-   contato revogado pelo celular novo. Ao tocar em **Usar neste celular**, o app envia da fila só os registros de dose
-   (os medicamentos excluídos ficam no servidor como exclusão lógica, então o lote passa), descarta as alterações
-   pendentes de medicamentos, contato e perfil e baixa a cópia completa do servidor. A tela avisa antes que as
-   alterações feitas naquele celular serão substituídas. Nenhuma mudança no back-end.
-9. **Ajustes de experiência.** **Lembrar depois** adia 10 minutos; o cartão do questionário volta 3 dias depois de
-   pulado (os dois no escopo, cada um num ajuste só). Letras grandes e alto contraste ficam só no aparelho: o
-   `ProfileModel` não tem esses campos, e a fonte do sistema já é de cada celular. No relatório, o atraso típico é a
-   mediana de `taken_at` menos o horário marcado das doses registradas, e o percentual conta sobre as doses esperadas,
-   sem os dias pausados e sem as doses ainda dentro do prazo. No aparelho não há "sem dados": o histórico local está
-   sempre ali.
+- **Hospedagem da API.** Azure Container Apps com réplica mínima 1, como no TVP, ou um VPS com Docker Compose
+  ([arquitetura](arquitetura.md#hospedagem)). Decidir antes de a fase 3 sair da rede local; o deploy, as migrations e
+  o backup diário vêm com a escolha.
 
 ## Fase 0: validar o motor de lembretes
 
@@ -103,8 +64,10 @@ original da dose e preserva o próximo disparo diário. A mesma ação entregue 
   - `Card`, `StatusChip` (ícone e palavra para Pendente, Registrado e Sem confirmação), `Chip`, `TextField`, `YesNo`;
   - campos grandes de dia/mês/ano e de hora/minuto;
   - `Row`, que empilha acima de `stackedFontScale`.
+- [ ] Back-end: `SyncModel.MedicationPeriods` e o `DosesBetween` lendo os períodos, como descrito em "Not done yet"
+      no `AGENTS.md`. Muda o contrato antes de existir um cliente, então não quebra ninguém.
 - [ ] SQLite com migrações por `PRAGMA user_version`: `medications`, `dose_records`, `contact`, `profile`,
-      `medication_periods` (decisão 6), `outbox` e `settings`. Ids UUID e `updated_at` gerados no
+      `medication_periods`, `outbox` e `settings`. Ids UUID e `updated_at` gerados no
       aparelho, como no `SyncModel`.
 - [ ] Jest com `jest-expo` para a lógica pura, rodando no CI junto com o lint e o `tsc`.
 
@@ -113,7 +76,7 @@ estados continuam legíveis, com foco previsível, controles rotulados e rolagem
 
 ## Fase 2: medicamentos e lembretes
 
-Protótipo antes: o cadastro de remédio com os campos de hora e minuto (decisão 4) e o histórico do dia com
+Protótipo antes: o cadastro de remédio com os campos de hora e minuto e o histórico do dia com
 **Desfazer** e os dias pausados.
 
 - [ ] Interface única em `src/lib/reminders.ts`: agendar e cancelar os lembretes de um medicamento, reconciliar tudo
@@ -123,9 +86,9 @@ Protótipo antes: o cadastro de remédio com os campos de hora e minuto (decisã
       `taken_at`), com a mesma proteção contra a ação entregue duas vezes do teste atual.
 - [ ] Tela **Remédios**: lista, cadastro e edição (nome, dose em texto livre, horários), pausar e retomar, excluir
       (fica como exclusão lógica). A chave de compartilhar com o contato só aparece quando há contato. Mudar horários,
-      pausar e retomar fecham o período vigente e abrem outro (decisão 6); editar nome ou dose não mexe nos períodos.
+      pausar e retomar fecham o período vigente e abrem outro; editar nome ou dose não mexe nos períodos.
 - [ ] Tela **Hoje**, como no canvas: o próximo horário com **Tomei**, os horários do dia com o estado de cada um, e o
-      botão SOS. Mostrar os estados conforme a decisão 7. Um **Tomei** local já aparece como registrado, mesmo com
+      botão SOS. Os estados seguem a regra do `AGENTS.md`. Um **Tomei** local já aparece como registrado, mesmo com
       envio pendente.
 - [ ] Tela **Lembrete**, aberta pelo toque na notificação: horário em 72, **Tomei** em 30, **Lembrar depois**.
 - [ ] Histórico por dia, com a hora do registro e **Desfazer** (limpa `taken_at`). As doses esperadas de cada dia
@@ -154,7 +117,7 @@ Precisa da API acessível pelo celular: local, pela rede ou por um túnel, até 
       voltar a conexão e pelo `expo-background-task`, com novas tentativas. Gravar mudança e item de fila na mesma
       transação, enviar medicamentos antes das doses dependentes e preservar edições feitas durante um envio.
 - [ ] 409 na sincronização: tela "Sua conta foi aberta em outro celular", com **Usar neste celular**
-      (`PUT account/active-device`). Suspender sync até reativar, preservar a fila e reconciliar conforme a decisão 8.
+      (`PUT account/active-device`). Suspender sync até reativar, preservar a fila e reativar como o `AGENTS.md` descreve.
 - [ ] Sinal de vida (`POST sync/heartbeat`) ao abrir e em segundo plano, com a plataforma, o fuso IANA e o token do
       Expo. Ligar `enableRemoteNotifications` e as credenciais do FCM e do APNs no EAS.
 - [ ] Ping: tarefa de notificação em segundo plano (`expo-task-manager`; no iOS, `enableBackgroundRemoteNotifications`)
@@ -279,7 +242,7 @@ real, integrações testadas e documentos legais publicados. Completar a passage
 
 | Fase | Dependência | Estado |
 | --- | --- | --- |
-| 1–2, 7 | Períodos de pausa e de horários no `SyncModel`, e `DosesBetween` usando-os no resumo e nos avisos (decisão 6) | O contrato guarda apenas a agenda e a pausa atuais |
+| 1 | Períodos de pausa e de horários no `SyncModel`, e `DosesBetween` usando-os no resumo e nos avisos | O contrato guarda apenas a agenda e a pausa atuais |
 | 3 | API acessível pelo celular (hospedagem ou túnel) | Hospedagem não escolhida |
 | 3 | Credenciais do FCM e do APNs no EAS para o ping | A configurar |
 | 3 | Client IDs do Google e o bundle ID da Apple em `SocialLogin` | A configurar |

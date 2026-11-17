@@ -85,7 +85,15 @@ starting value: keep each one in a single setting.
   the API client and device helpers.
 - Colors, fonts and text sizes come from `src/theme.ts`; the brand rules behind them (logo use, contrast, how text
   grows with the system font) are in `docs/marca/README.md`. Above `stackedFontScale`, side-by-side layouts stack:
-  screens scroll only vertically.
+  screens scroll only vertically. The app's large-text mode (`largeTextScale`, plus the stronger contrast in the brand
+  guide) is a device setting, not part of the profile.
+- Navigation is React Navigation (`native-stack` and `bottom-tabs`) with its static configuration in one file, so
+  screens stay in `src/features/<feature>`; not `expo-router`, whose `app/` folder would be a second convention. Tabs:
+  **Hoje**, **Remédios**, **Telefones** and **Artigos**; **Perfil** opens from the header.
+- No state library: SQLite is the source of truth, and screens read it through small hooks that query again when the
+  database signals a change.
+- Times and dates are typed in large fields with plus and minus buttons (hour and minute, day, month and year), never
+  the system's pickers.
 - Reuse the installed development client with Metro for TypeScript and UI changes. Rebuild it to test changes to
   native dependencies or configuration. Batch changes for standalone preview builds when testing without Metro,
   such as offline reminders with the app closed. EAS keeps and increments the build numbers (`appVersionSource`
@@ -105,6 +113,14 @@ starting value: keep each one in a single setting.
 - SQLite (`expo-sqlite`) on the device keeps the app working offline. Every change is synced to the server through
   the outgoing queue (see `docs/arquitetura.md`, "Sincronização"): records get a UUID and an updated-at on the
   device, the last write wins, and only one device per account is active.
+- The device works out a dose's state on its own: **Pendente** until 1 hour after its time, **Registrado** once it
+  has `taken_at` (even before it is uploaded), **Sem confirmação** after the deadline with no "Tomei". The hour is a
+  constant that mirrors the server's `NoticeSettings.MissedDoseAfter` (`docs/escopo.md` keeps them one number). The
+  6-hour contact rule stays on the server: it decides whether the family hears, not what the person sees, and the
+  screen never says whether a notice went out.
+- "Usar neste celular" after a 409 uploads only the queued dose records, drops the queued medication, contact and
+  profile changes, and downloads the whole account again; the screen warns first. The server forgets a deleted
+  contact, so an old queued change would bring back a contact the other phone removed.
 - Login uses `@react-native-google-signin/google-signin` and `expo-apple-authentication`; the app exchanges the
   provider's token for the API's JWT and refresh token, kept in the system's secure storage.
 - Purchases use the RevenueCat SDK (`react-native-purchases`) with the account id as the app user id. The app reads
@@ -113,7 +129,10 @@ starting value: keep each one in a single setting.
 - The API client is generated from the OpenAPI document with orval, as in RevoSolutions.TVP's `web/`.
 - Content lives in `mobile/content/`: one Markdown file per article (frontmatter with title, theme, health-condition
   codes and date), `telefones.json` (category, name, number, whether it is an emergency number) and the Premium promo
-  texts. No admin UI and no content endpoint; new content ships with EAS Update.
+  texts. No admin UI and no content endpoint; new content ships with EAS Update. `npm run content` turns `content/`
+  into a TypeScript module that is committed, and CI checks it is current. Articles render a small Markdown subset
+  (headings, paragraphs, lists, bold) with the app's own components, so they follow the system font and TalkBack;
+  add a Markdown library only when the content needs more.
 - The app is pt-BR only: write user-facing text in Portuguese and don't add an i18n layer until a second language is
   scheduled.
 
@@ -352,6 +371,13 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
   its Authorization header.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
+- Schedule history, decided and not built: the server keeps only a medication's current `Times` and `Paused`, and
+  `Medication.DosesBetween` drops every dose before `UpdatedAt`, which changes on any edit (switching on sharing at
+  19:00 takes the morning's doses out of the 20:00 summary). Next: `SyncModel.MedicationPeriods`, append-only records
+  like dose records (`Id`, `MedicationId`, `StartsAt`, `Times`, `Paused`, `UpdatedAt`); a period starts when a
+  medication is created, its times change, or it is paused or resumed, never for a name, dose or sharing edit.
+  `DosesBetween` reads the periods instead of `UpdatedAt`, so the summary, the notices, the app's history and the PDF
+  expect the same doses. The device keeps them in `medication_periods`.
 - Processed outbox messages and expired refresh tokens are never deleted; add a cleanup when the tables grow.
 - SOS over WhatsApp has no cap per account; each one is paid. Add one if a bug or abuse ever sends too many.
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). The API
