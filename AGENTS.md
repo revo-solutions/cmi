@@ -41,8 +41,10 @@ starting value: keep each one in a single setting.
 - A dose is **Pendente**, **Registrado** or **Sem confirmação**. The history keeps when the dose was recorded and lets
   the person undo an accidental tap.
 - The person chooses which medications the trusted contact sees and can revoke that access; the contact never sees a
-  medication that wasn't shared. Revoking access deletes the contact's and the shared medications' data from the
-  server.
+  medication that wasn't shared. Sharing is the default and the choice is an opt-out: with a contact, a new
+  medication starts shared, its form offers "Não compartilhar este remédio com a Ana" unchecked, and adding the
+  contact shares the existing ones while showing the list to uncheck any. Revoking access deletes the contact's and
+  the shared medications' data from the server.
 - The app stands on its own: the person can use it and buy Premium with no family member linked. What is free and
   what is Premium is in `docs/escopo.md`. Rule: anything with a per-use cost is Premium. Every WhatsApp send (linking,
   routine notices, SOS over WhatsApp, birthday reminder) is Premium; free SOS calls or opens an SMS from the phone's
@@ -107,6 +109,11 @@ starting value: keep each one in a single setting.
   `expo-background-task` (the outgoing queue, the heartbeat and downloading updates), behind one TypeScript
   interface. Prefer Expo modules over bare native code; own Kotlin or Swift code goes behind that same interface, and
   only when tests on real devices prove the gain. Leaving the managed workflow needs a reason written here.
+- `src/lib/reminders.ts` is that interface. `reconcileReminders` makes the scheduled daily reminders match the
+  medications; call it on opening and after every change to one. A daily reminder is `dose.<medication>.<HHmm>`
+  (`delivery: 'alarmClock'` on Android), a snooze `snooze.<medication>.<day>.<HHmm>`, so an action knows its dose
+  without the notification's data, which Android's background task doesn't parse. "Tomei" keeps the first tap.
+  At most `maxDailyReminders` (48) daily times, under iOS's 64 pending notifications.
 - The server's ping (see "Push") is a data-only push, `{ "type": "ping" }` with no title or body, so nothing shows.
   The app answers it with a heartbeat from a background notification task (`expo-task-manager`; on iOS the
   `expo-notifications` plugin's `enableBackgroundRemoteNotifications`).
@@ -387,11 +394,12 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
   image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum of one replica, as in
   TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The
   rollout step, applying the migrations and the daily backup come with that choice.
-- The Expo app opens on **Hoje** and links to **Perfil**. Add the tabs (`@react-navigation/bottom-tabs`) as their
-  features become usable. The reminder prototype was removed after deciding to proceed with `expo-notifications`;
-  a phone that ran it needs the app reinstalled to drop its leftover test notifications. Validate reminders through
-  the medication flow on Android and a real iPhone. `react-native-screens` is native, so running this navigation
-  needs a new development or preview build.
+- The Expo app has the medication flow on the device only: tabs **Hoje** and **Remédios**, the form, the history,
+  the reminder screen and the reminders (`src/lib/reminders.ts`); nothing reaches the server until the outgoing queue
+  and login exist. Add the other tabs as their features become usable. A phone that ran the old reminder test needs
+  the app reinstalled to drop its leftover test notifications. Validate the reminders on Android and a real iPhone
+  before calling the flow done. `react-native-screens` is native, so running the navigation needs a development or
+  preview build made after it was added.
 
 ## Commits
 

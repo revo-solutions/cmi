@@ -16,9 +16,9 @@ type NumberFieldProps = {
 };
 
 // One part of a date or time: a large value that can be typed, between minus and plus buttons. Never the system's
-// pickers (AGENTS.md, "Mobile").
+// pickers (AGENTS.md, "Mobile"). The label sits beside it, or above once the text grows.
 export function NumberField({ label, value, digits, onStep, onType }: NumberFieldProps) {
-  const { textScale } = useDisplayMode();
+  const { textScale, stacked } = useDisplayMode();
   const [draft, setDraft] = useState<string | null>(null);
   const shown = String(value).padStart(digits, '0');
 
@@ -30,9 +30,9 @@ export function NumberField({ label, value, digits, onStep, onType }: NumberFiel
   };
 
   return (
-    <View style={styles.field}>
-      <AppText bold>{label}</AppText>
-      <View style={styles.row}>
+    <View style={[styles.field, stacked && styles.stacked]}>
+      <AppText bold style={!stacked && styles.inlineLabel}>{label}</AppText>
+      <View style={[styles.row, stacked && styles.wide]}>
         <StepButton label={`${label}: diminuir`} icon="minus" onPress={() => onStep(-1)} />
         <TextInput
           accessibilityLabel={label}
@@ -43,7 +43,11 @@ export function NumberField({ label, value, digits, onStep, onType }: NumberFiel
           keyboardType="number-pad"
           maxLength={digits}
           selectTextOnFocus
-          style={[styles.value, { fontSize: text.screen.fontSize * textScale, minWidth: (digits * 22 + 24) * textScale }]}
+          style={[
+            styles.value,
+            { fontSize: text.title.fontSize * 1.2 * textScale, width: stacked ? undefined : (digits * 16 + 40) * textScale },
+            stacked && styles.wideValue,
+          ]}
         />
         <StepButton label={`${label}: aumentar`} icon="plus" onPress={() => onStep(1)} />
       </View>
@@ -68,16 +72,28 @@ function StepButton({ label, icon, onPress }: { label: string; icon: 'minus' | '
 
 const styles = StyleSheet.create({
   field: {
-    gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stacked: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  inlineLabel: {
+    flex: 1,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  wide: {
+    alignSelf: 'stretch',
+  },
   step: {
-    width: touch.main,
-    height: touch.main,
+    width: touch.minimum,
+    height: touch.minimum,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.orchid800,
@@ -85,7 +101,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   value: {
-    minHeight: touch.main,
+    minHeight: touch.minimum,
     borderWidth: 2,
     borderColor: colors.outline,
     borderRadius: 14,
@@ -94,5 +110,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     textAlign: 'center',
     paddingHorizontal: 8,
+  },
+  wideValue: {
+    flex: 1,
   },
 });

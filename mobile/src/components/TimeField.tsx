@@ -1,10 +1,12 @@
+import { StyleSheet, View } from 'react-native';
+
 import { stepHour, stepMinute, type Time } from '../lib/dateFields';
 import { NumberField } from './NumberField';
-import { Row } from './Row';
 
+// Hour and minute on rows of their own, as in the canvas prototype: side by side they don't fit a phone.
 export function TimeField({ value, onChange }: { value: Time; onChange: (value: Time) => void }) {
   return (
-    <Row>
+    <View style={styles.field}>
       <NumberField
         label="Hora"
         value={value.hour}
@@ -27,6 +29,12 @@ export function TimeField({ value, onChange }: { value: Time; onChange: (value: 
           }
         }}
       />
-    </Row>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  field: {
+    gap: 10,
+  },
+});

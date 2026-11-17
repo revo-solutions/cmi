@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
+import { Settings } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 
 import { ApiUnavailableError } from '../../api/client';
 import { AppText } from '../../components/AppText';
@@ -60,6 +61,16 @@ export function ProfileScreen() {
         />
         <AppText variant="support">Vale só para este celular e soma com o tamanho de letra do sistema.</AppText>
       </Card>
+      {Platform.OS === 'android' && (
+        <Card>
+          <AppText variant="title" accessibilityRole="header">Para os lembretes tocarem na hora</AppText>
+          <AppText>
+            Em alguns celulares, a economia de bateria atrasa os lembretes. Nos ajustes do app, em Bateria, escolha “Sem
+            restrições”.
+          </AppText>
+          <Button label="Abrir os ajustes do app" variant="secondary" icon={Settings} onPress={() => void Linking.openSettings()} />
+        </Card>
+      )}
       <Card accessibilityState={{ busy }}>
         <AppText variant="title" accessibilityRole="header">Conta</AppText>
         <AppText>Sair mantém sua conta e seus dados salvos no servidor.</AppText>
