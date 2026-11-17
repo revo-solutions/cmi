@@ -124,7 +124,9 @@ Diferente do TVP, aqui o outbox é o caminho principal: todo aviso ao familiar p
    logo, e entrega cada uma aos handlers, que enviam pelo WhatsApp. A entrega é *at-least-once*. Por isso, cada aviso
    tem uma chave de idempotência (por exemplo, dose + tipo de aviso), para não pagar duas vezes pela mesma mensagem.
    Nenhuma mensagem pelo WhatsApp sai sem o Premium ativo.
-5. **Status.** O webhook do WhatsApp grava o status de entrega, e o app o consulta para mostrar o status do SOS.
+5. **Status.** Cada aviso guarda o seu status: não enviado (sem Premium, sem familiar vinculado ou sem nada a dizer)
+   ou enviado, e depois entregue, lido ou com falha, conforme o webhook do WhatsApp. O app consulta o status do SOS
+   para mostrá-lo e, se não for enviado ou falhar, oferece ligar.
 
 ### Modelos de mensagem
 
@@ -142,11 +144,13 @@ valores precisa continuar a mesma.
 | `celular_sem_contato` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} está sem contato há mais de {{2}} horas. Vale a pena ligar para saber se está tudo bem. |
 | `app_desinstalado` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} parou de receber as notificações do app, que pode ter sido desinstalado ou ficado com as notificações desligadas. Assim os lembretes de remédio também param. Vale a pena ligar para ajudar. |
 | `avisos_pausados` | Utilidade | Aviso do Central Melhor Idade: há {{2}} dias não recebemos nenhum registro de dose {{1}}. Pausamos os avisos de dose e o resumo diário, que voltam sozinhos no próximo registro. |
+| `pedido_de_ajuda` | Utilidade | Pedido de ajuda {{1}}, enviado pelo Central Melhor Idade em {{2}}. Ligue agora para saber se está tudo bem. |
 | `aniversario` | Marketing (provável) | Lembrete do Central Melhor Idade: hoje é aniversário {{1}}. Que tal ligar para dar os parabéns? |
 
 Valores: em `dose_sem_confirmacao`, `{{2}}` é o horário ("08:00") e `{{3}}` são os remédios ("Losartana 50 mg,
 Metformina"). Em `resumo_diario`, são as contagens das 24 horas antes das 20h. Em `celular_sem_contato`, `{{2}}` é o
-limite (12, ou 24 no iPhone). Em `avisos_pausados`, `{{2}}` são os dias sem registro (3).
+limite (12, ou 24 no iPhone). Em `avisos_pausados`, `{{2}}` são os dias sem registro (3). Em `pedido_de_ajuda`,
+`{{2}}` é o dia e a hora no relógio do celular ("17/11 às 14:32"), porque o pedido pode chegar atrasado pela fila.
 
 As respostas ao familiar quando ele envia o código, PARAR ou outra mensagem são texto livre, sem modelo. Elas são
 gratuitas, porque saem dentro das 24 horas que a mensagem dele abriu. Os textos estão em `ContactLinkService`.

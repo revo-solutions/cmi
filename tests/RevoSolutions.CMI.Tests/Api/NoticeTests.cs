@@ -3,7 +3,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
-using RevoSolutions.CMI.Data.PostgreSql.Outbox;
 using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
 using RevoSolutions.CMI.Domain.Models;
@@ -345,11 +344,7 @@ public class NoticeTests
         await scope.ServiceProvider.GetRequiredService<NoticeService>().Check(accountId, now);
     }
 
-    private async Task ProcessOutbox()
-    {
-        using var scope = _factory.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<OutboxProcessor>().ProcessPendingAsync(batchSize: 1000);
-    }
+    private Task ProcessOutbox() => _factory.ProcessOutbox();
 
     private async Task<List<Notice>> Notices(Guid accountId)
     {

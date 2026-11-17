@@ -20,8 +20,9 @@ public sealed partial class WhatsAppClient
         _logger = logger;
     }
 
-    // A message outside a conversation the person opened: only an approved template may go, and it is paid for.
-    public Task SendTemplate(string to, string template, IReadOnlyList<string> parameters, CancellationToken cancellationToken = default) =>
+    // A message outside a conversation the person opened: only an approved template may go, and it is paid for. Returns
+    // the message's id, null when WhatsApp isn't configured.
+    public Task<string?> SendTemplate(string to, string template, IReadOnlyList<string> parameters, CancellationToken cancellationToken = default) =>
         Post(
             template,
             new
@@ -45,7 +46,7 @@ public sealed partial class WhatsAppClient
     public Task SendText(string to, string body, CancellationToken cancellationToken = default) =>
         Post("text", new { messaging_product = "whatsapp", to, type = "text", text = new { body } }, cancellationToken);
 
-    private async Task Post(string what, object message, CancellationToken cancellationToken)
+    private async Task<string?> Post(string what, object message, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(_settings.AccessToken))
         {
@@ -54,7 +55,7 @@ public sealed partial class WhatsAppClient
                 _logger.LogInformation("WhatsApp isn't configured; the {What} message was not sent.", what);
             }
 
-            return;
+            return null;
         }
 
         using var response = await _http.PostAsJsonAsync("messages", message, cancellationToken);
@@ -64,7 +65,14 @@ public sealed partial class WhatsAppClient
             var error = await response.Content.ReadAsStringAsync(cancellationToken);
             throw new HttpRequestException($"WhatsApp refused the {what} message ({(int)response.StatusCode}): {error}", null, response.StatusCode);
         }
+
+        var sent = await response.Content.ReadFromJsonAsync<SendResponse>(cancellationToken);
+        return sent?.Messages is [{ Id: var id }, ..] ? id : null;
     }
+
+    private sealed record SendResponse(IReadOnlyList<SentMessage>? Messages);
+
+    private sealed record SentMessage(string? Id);
 
     // Template values may not hold line breaks, tabs or more than four spaces in a row.
     private static string Clean(string value) => Whitespace().Replace(value, " ").Trim();

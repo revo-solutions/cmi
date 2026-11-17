@@ -2,11 +2,15 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using RevoSolutions.CMI.Domain.Core.Contracts.Repositories;
+using RevoSolutions.CMI.Domain.Core.Contracts.UnitOfWork;
+using RevoSolutions.CMI.Domain.Entities;
+using RevoSolutions.CMI.Domain.Enumerators;
 using RevoSolutions.CMI.Domain.Services;
 
 namespace RevoSolutions.CMI.Anticorruption.WhatsApp;
 
-// Translates Meta's webhook calls: text messages go to the link rules, and failed deliveries are logged.
+// Translates Meta's webhook calls: text messages go to the link rules, and delivery statuses to the notices.
 public sealed class WhatsAppWebhook
 {
     private const string SignaturePrefix = "sha256=";
@@ -16,13 +20,23 @@ public sealed class WhatsAppWebhook
     private readonly WhatsAppSettings _settings;
     private readonly ContactLinkService _links;
     private readonly WhatsAppClient _client;
+    private readonly IRepository<Notice> _notices;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<WhatsAppWebhook> _logger;
 
-    public WhatsAppWebhook(WhatsAppSettings settings, ContactLinkService links, WhatsAppClient client, ILogger<WhatsAppWebhook> logger)
+    public WhatsAppWebhook(
+        WhatsAppSettings settings,
+        ContactLinkService links,
+        WhatsAppClient client,
+        IRepository<Notice> notices,
+        IUnitOfWork unitOfWork,
+        ILogger<WhatsAppWebhook> logger)
     {
         _settings = settings;
         _links = links;
         _client = client;
+        _notices = notices;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -64,14 +78,36 @@ public sealed class WhatsAppWebhook
 
             foreach (var status in value.Statuses ?? [])
             {
-                if (status.Status == "failed" && _logger.IsEnabled(LogLevel.Warning))
-                {
-                    _logger.LogWarning(
-                        "WhatsApp couldn't deliver message {MessageId}: error {Errors}.",
-                        status.Id,
-                        string.Join(", ", status.Errors?.Select(e => e.Code) ?? []));
-                }
+                await UpdateDelivery(status);
             }
+        }
+
+        await _unitOfWork.CommitAsync();
+    }
+
+    // Statuses of the free-text replies match no notice and are dropped.
+    private async Task UpdateDelivery(DeliveryStatus status)
+    {
+        NoticeStatus? delivery = status.Status switch
+        {
+            "sent" => NoticeStatus.Sent,
+            "delivered" => NoticeStatus.Delivered,
+            "read" => NoticeStatus.Read,
+            "failed" => NoticeStatus.Failed,
+            _ => null,
+        };
+
+        if (delivery == NoticeStatus.Failed && _logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning(
+                "WhatsApp couldn't deliver message {MessageId}: error {Errors}.",
+                status.Id,
+                string.Join(", ", status.Errors?.Select(e => e.Code) ?? []));
+        }
+
+        if (delivery is { } update && status.Id is not null && await _notices.FirstOrDefault(n => n.MessageId == status.Id) is { } notice)
+        {
+            notice.UpdateDelivery(update);
         }
     }
 

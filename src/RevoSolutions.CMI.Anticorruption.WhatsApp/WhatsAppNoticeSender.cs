@@ -11,7 +11,7 @@ public sealed class WhatsAppNoticeSender : INoticeSender
         _client = client;
     }
 
-    public Task Send(string to, NoticeMessage message, CancellationToken cancellationToken = default) =>
+    public Task<string?> Send(string to, NoticeMessage message, CancellationToken cancellationToken = default) =>
         _client.SendTemplate(to, TemplateName(message.Template), message.Parameters, cancellationToken);
 
     // The names the templates are approved under in WhatsApp Manager (docs/arquitetura.md, "Modelos de mensagem").
@@ -24,6 +24,7 @@ public sealed class WhatsAppNoticeSender : INoticeSender
         NoticeTemplate.Uninstalled => "app_desinstalado",
         NoticeTemplate.Paused => "avisos_pausados",
         NoticeTemplate.Birthday => "aniversario",
+        NoticeTemplate.Sos => "pedido_de_ajuda",
         _ => throw new ArgumentOutOfRangeException(nameof(template), template, "No WhatsApp template for it."),
     };
 }

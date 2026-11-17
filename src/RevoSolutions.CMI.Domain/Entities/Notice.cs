@@ -16,10 +16,16 @@ public class Notice : EntityBase
     // The person's local date the notice is about, which the daily cap counts by.
     public DateOnly Day { get; set; }
 
-    // The scheduled time of a missed dose; every dose due then is in the same notice.
+    // The scheduled time of a missed dose, every dose due then being in the same notice; or the time of an SOS.
     public TimeOnly? ScheduledTime { get; set; }
 
     public DateTime? SentAt { get; set; }
+
+    // WhatsApp's id for the message, which its delivery statuses refer to. Null when nothing was sent.
+    public string? MessageId { get; set; }
+
+    // Null until the outbox hands the notice to SendNoticeHandler.
+    public NoticeStatus? Status { get; set; }
 
     public static Notice Create(Guid accountId, NoticeKind kind, string key, DateOnly day, TimeOnly? scheduledTime)
     {
@@ -34,5 +40,23 @@ public class Notice : EntityBase
         notice.AddDomainEvent(new NoticeCreatedDomainEvent(notice.Id, notice.CreatedDate));
 
         return notice;
+    }
+
+    public void MarkSent(string? messageId, DateTime now)
+    {
+        MessageId = messageId;
+        SentAt = now;
+        Status = NoticeStatus.Sent;
+    }
+
+    public void MarkNotSent() => Status ??= NoticeStatus.NotSent;
+
+    // WhatsApp may report the statuses out of order; an earlier one never undoes a later one.
+    public void UpdateDelivery(NoticeStatus status)
+    {
+        if (Status >= NoticeStatus.Sent && status > Status)
+        {
+            Status = status;
+        }
     }
 }

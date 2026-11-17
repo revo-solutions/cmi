@@ -14,6 +14,8 @@ public class NoticeConfiguration : IEntityTypeConfiguration<Notice>
 
         builder.Property(n => n.Kind).HasConversion<string>().HasMaxLength(20);
         builder.Property(n => n.Key).HasMaxLength(150).IsRequired();
+        builder.Property(n => n.MessageId).HasMaxLength(100);
+        builder.Property(n => n.Status).HasConversion<string>().HasMaxLength(20);
 
         builder.HasOne<Account>()
             .WithMany()
@@ -22,5 +24,6 @@ public class NoticeConfiguration : IEntityTypeConfiguration<Notice>
 
         builder.HasIndex(n => n.Key).IsUnique();
         builder.HasIndex(n => new { n.AccountId, n.Day });
+        builder.HasIndex(n => n.MessageId);
     }
 }

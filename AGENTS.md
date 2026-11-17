@@ -184,7 +184,9 @@ How it is built:
   day, the last contact). The key is what stops a notice from being decided twice, and what makes the one-off notices
   repeat only after the state changes (the no-contact key is the last contact, the pause key the last "Tomei").
 - `Notice.Create` raises `NoticeCreatedDomainEvent`; `SendNoticeHandler` sends it through `INoticeSender`
-  (`Domain/Contracts/Messaging`) and sets `SentAt`, which stops a retried delivery from paying twice. The message is
+  (`Domain/Contracts/Messaging`) and sets `Status`, which stops a retried delivery from paying twice: `Sent`, with
+  WhatsApp's `MessageId` and `SentAt`, or `NotSent` when there is no Premium, no linked contact or nothing left to say.
+  WhatsApp's delivery statuses then move it forward (`Delivered`, `Read`, `Failed`). The message is
   built when it is sent, from the current data, by `NoticeMessageBuilder`: a `NoticeTemplate` and its values, the
   person always first in the "of" form ("da sua mãe, Maria"). A missed dose recorded in the meantime sends nothing.
 - The ping is `Account.RequestPing`, which raises `DevicePingRequestedDomainEvent`; `SendPingHandler` pushes it (see
@@ -217,7 +219,23 @@ phone numbers or message text.
   the code again resumes. Each message gets a reply. Linking works without Premium (the app shows the link only
   with it): the link is kept, and the reply says the notices start once Premium is active.
 - A new phone for the contact drops the link and draws a new code: another person links up themselves.
-- Tests replace Meta with `FakeWhatsApp`, an `HttpMessageHandler` that records what the API sends.
+- The webhook's delivery statuses update the notice with that `MessageId`, only forward, since Meta may send them out
+  of order. Failures are also logged with Meta's error codes.
+- Tests replace Meta with `FakeWhatsApp`, an `HttpMessageHandler` that records what the API sends;
+  `CmiApiFactory.ReceiveWhatsAppStatus` plays a delivery status.
+
+### SOS
+
+The help request over WhatsApp is Premium; the free SOS (a call, or an SMS opened with the text ready, from the
+phone's own plan) never reaches the server.
+
+- `POST sos` takes the device's request `Id` and `RequestedAt`, with the phone's offset, and returns its status. It is
+  a `Notice` of kind `Sos` keyed by that id, so the outgoing queue can send it again safely, and the outbox sends it
+  within seconds through `SendNoticeHandler`, like any notice: `pedido_de_ajuda`, with the person and the day and
+  time on their clock.
+- `GET sos/{id}` is the status the app shows: null while it waits for the outbox, then `NotSent` (the app offers the
+  call and the SMS), `Sent`, `Delivered`, `Read` or `Failed`.
+- A device that is no longer the active one may still ask for help.
 
 ### Premium
 
@@ -306,11 +324,12 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 
 - The back end has login, refresh, logout, the active device, account deletion, the profile with the name, sync, the
   heartbeat, the notice rules, the worker, the outbox, WhatsApp (linking, PARAR, the notice templates), Premium
-  from RevenueCat, which gates the notices, and the push ping with the uninstalled-app notice. Not yet: SOS.
+  from RevenueCat, which gates the notices, the push ping with the uninstalled-app notice, and SOS with its delivery
+  status. Not yet: the web page to ask for account deletion (Google requires it), the terms and the privacy policy,
+  and the deploy.
 - RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
   its Authorization header.
-- WhatsApp delivery statuses are only logged when they fail; storing them comes with SOS, whose status the app shows.
-- The seven templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
+- The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). No Dockerfile
   or deploy workflow yet; take them from TVP when deploying.

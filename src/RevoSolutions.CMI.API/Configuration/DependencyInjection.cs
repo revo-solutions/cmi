@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddSingleton<SyncMapper>();
         services.AddScoped<SyncService>();
         services.AddScoped<ContactLinkService>();
+        services.AddScoped<SosService>();
 
         services.AddSingleton(configuration.GetSection("Notices").Get<NoticeSettings>() ?? new NoticeSettings());
         services.AddScoped<NoticeService>();

@@ -50,18 +50,18 @@ public class NoticeMessageBuilder
     public async Task<NoticeMessage?> Build(Notice notice, Contact contact)
     {
         var account = await _accounts.FirstOrDefault(a => a.Id == notice.AccountId);
-        if (account?.TimeZone is null)
+        if (account is null)
         {
             return null;
         }
 
         var subject = Subject(contact.Relationship, account.Name);
-        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(account.TimeZone);
 
         return notice.Kind switch
         {
             NoticeKind.MissedDose => await MissedDose(notice, subject),
-            NoticeKind.DailySummary => await Summary(account, notice.Day, timeZone, subject),
+            NoticeKind.DailySummary => await Summary(account, notice.Day, subject),
+            NoticeKind.Sos => new(NoticeTemplate.Sos, [subject, string.Create(CultureInfo.InvariantCulture, $"{notice.Day:dd/MM} às {notice.ScheduledTime:HH:mm}")]),
             NoticeKind.NoContact => new(NoticeTemplate.NoContact, [subject, Number(_settings.NoContactLimit(account.Platform).TotalHours)]),
             NoticeKind.Uninstalled => new(NoticeTemplate.Uninstalled, [subject]),
             NoticeKind.Paused => new(NoticeTemplate.Paused, [subject, Number(_settings.AbandonmentDays)]),
@@ -88,8 +88,10 @@ public class NoticeMessageBuilder
     }
 
     // The 24 hours before the summary time. While the phone is silent its doses say nothing, so the summary says that.
-    private async Task<NoticeMessage> Summary(Account account, DateOnly day, TimeZoneInfo timeZone, string subject)
+    // The rules decide a summary only for an account with a time zone.
+    private async Task<NoticeMessage> Summary(Account account, DateOnly day, string subject)
     {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(account.TimeZone!);
         var end = TimeZoneInfo.ConvertTimeToUtc(day.ToDateTime(_settings.SummaryTime), timeZone);
         if (end - account.LastSeenAt >= _settings.NoContactLimit(account.Platform))
         {

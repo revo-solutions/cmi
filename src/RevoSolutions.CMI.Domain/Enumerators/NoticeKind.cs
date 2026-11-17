@@ -10,4 +10,7 @@ public enum NoticeKind
     Uninstalled,
     Paused,
     Birthday,
+
+    // A help request from the app, sent as soon as it reaches the server.
+    Sos,
 }

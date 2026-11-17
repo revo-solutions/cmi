@@ -37,35 +37,42 @@ public class SendNoticeHandler : IDomainEventHandler<NoticeCreatedDomainEvent>
     {
         var notice = await _notices.FirstOrDefault(n => n.Id == domainEvent.NoticeId);
 
-        // The outbox delivers at least once; a notice already sent is not paid for twice. A deleted account takes its
+        // The outbox delivers at least once; a notice already handled is not paid for twice. A deleted account takes its
         // notices with it.
-        if (notice is null || notice.SentAt is not null)
+        if (notice is null || notice.Status is not null)
         {
             return;
         }
 
-        // Premium ended after the notice was decided: it is never sent, not even on subscribing again.
+        if (await Message(notice) is { } send)
+        {
+            notice.MarkSent(await _sender.Send(send.To, send.Message, cancellationToken), DateTime.UtcNow);
+        }
+        else
+        {
+            notice.MarkNotSent();
+        }
+
+        await _unitOfWork.CommitAsync();
+    }
+
+    private async Task<(string To, NoticeMessage Message)?> Message(Notice notice)
+    {
+        // Premium ended after the notice was decided (or never was, for an SOS): it is never sent, not even on
+        // subscribing again.
         var account = await _accounts.FirstOrDefault(a => a.Id == notice.AccountId);
         if (account?.IsPremium(DateTime.UtcNow) != true)
         {
-            return;
+            return null;
         }
 
-        // Revoked, or PARAR, after the notice was decided: nobody to tell.
+        // No linked contact, revoked, or PARAR: nobody to tell.
         var contact = await _contacts.FirstOrDefault(c => c.AccountId == notice.AccountId);
         if (contact?.WhatsAppNumber is null || !contact.ReceivesNotices())
         {
-            return;
+            return null;
         }
 
-        if (await _messages.Build(notice, contact) is not { } message)
-        {
-            return;
-        }
-
-        await _sender.Send(contact.WhatsAppNumber, message, cancellationToken);
-
-        notice.SentAt = DateTime.UtcNow;
-        await _unitOfWork.CommitAsync();
+        return await _messages.Build(notice, contact) is { } message ? (contact.WhatsAppNumber, message) : null;
     }
 }

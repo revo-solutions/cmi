@@ -84,6 +84,8 @@ erDiagram
         date Day
         time ScheduledTime "opcional"
         timestamptz SentAt "opcional"
+        varchar(100) MessageId "id da mensagem no WhatsApp, opcional"
+        varchar(20) Status "NotSent, Sent, Delivered, Read ou Failed, opcional"
         timestamptz CreatedDate
     }
 

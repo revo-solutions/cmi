@@ -18,6 +18,7 @@ using RevoSolutions.CMI.API.Authentication;
 using RevoSolutions.CMI.API.Models;
 using RevoSolutions.CMI.API.Notices;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
+using RevoSolutions.CMI.Data.PostgreSql.Outbox;
 using RevoSolutions.CMI.Domain.Contracts.Push;
 using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
@@ -93,6 +94,34 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
         });
 
         return await PostWhatsApp(body, Sign(body));
+    }
+
+    // A delivery status for a message the API sent, as Meta's webhook delivers it.
+    public async Task ReceiveWhatsAppStatus(string messageId, string status)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            @object = "whatsapp_business_account",
+            entry = new[]
+            {
+                new
+                {
+                    id = "1",
+                    changes = new[]
+                    {
+                        new { field = "messages", value = new { statuses = new[] { new { id = messageId, status } } } },
+                    },
+                },
+            },
+        });
+
+        (await PostWhatsApp(body, Sign(body))).EnsureSuccessStatusCode();
+    }
+
+    public async Task ProcessOutbox()
+    {
+        using var scope = Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<OutboxProcessor>().ProcessPendingAsync(batchSize: 1000);
     }
 
     public async Task<HttpResponseMessage> PostWhatsApp(string body, string? signature)
