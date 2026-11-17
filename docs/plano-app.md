@@ -13,6 +13,11 @@ A ordem segue a regra do escopo: o maior risco está nos lembretes, então o mot
 testado em aparelhos reais a cada fase. Cada fase termina num build `preview` instalado no Android e, quando mexer em
 lembretes, num TestFlight.
 
+Só se prototipa no canvas a tela cujo layout ainda é uma decisão: um controle novo, um padrão que as telas do canvas
+não cobrem, ou algo que precisa da opinião de um idoso ou de um familiar antes do código. Cada protótipo vem também
+em 150% da fonte, como a Hoje. As demais telas seguem os componentes da fase 1 e as telas que já existem, e são
+ajustadas direto no aparelho com o Metro.
+
 As decisões 6 e 7 vêm antes do esquema e das telas de doses, para que o histórico, o PDF e os avisos não reconstruam
 o passado com os dados de hoje. O cadastro e as doses podem ser implementados primeiro com SQLite (fases 1–2); conta
 e sync tornam esses dados recuperáveis (fase 3). A configuração inicial integra as telas de remédios e contato (fases
@@ -108,6 +113,9 @@ estados continuam legíveis, com foco previsível, controles rotulados e rolagem
 
 ## Fase 2: medicamentos e lembretes
 
+Protótipo antes: o cadastro de remédio com os campos de hora e minuto (decisão 4) e o histórico do dia com
+**Desfazer** e os dias pausados.
+
 - [ ] Interface única em `src/lib/reminders.ts`: agendar e cancelar os lembretes de um medicamento, reconciliar tudo
       ao abrir o app e depois de cada mudança, e receber **Tomei** e **Lembrar depois**. Um gatilho diário repetido
       por horário, com o id `medicamento:horário`; o adiamento é um gatilho único, com o intervalo num ajuste só.
@@ -161,7 +169,7 @@ duplicação, `409`, revogação de contato feita pelo outro aparelho, troca de 
 ## Fase 4: configuração inicial
 
 Ordem fixa: login, nome e nascimento, questionário, medicamentos, contato, permissões. Cada passo reaproveita a tela
-de edição do Perfil.
+de edição do Perfil. Protótipo antes: o questionário de saúde, com as condições, as três perguntas e o **Pular**.
 
 - [ ] Nome preenchido com o retorno do login nativo quando disponível, sem substituir o nome já sincronizado.
       A API só retorna tokens, e a Apple só entrega o nome no primeiro login com o app; num segundo aparelho ou numa
@@ -179,6 +187,8 @@ de edição do Perfil.
 Revisar respostas pelo Perfil, abrir os ajustes para liberar lembretes e conferir o cartão de saúde na data prevista.
 
 ## Fase 5: contato de confiança e SOS
+
+Protótipo antes: o vínculo pelo WhatsApp, com o link, o QR code e os estados pendente, vinculado e parado.
 
 - [ ] Cadastro do contato: nome, telefone e parentesco do ponto de vista do familiar (`Relationship`: pai, mãe, avô,
       avó, tio, tia, amigo, outro). Remover o contato limpa o compartilhamento de todos os medicamentos.
@@ -203,6 +213,7 @@ incluindo fila offline sem duplicar envio; o grátis consegue ligar ou abrir SMS
 ## Fase 6: Premium
 
 Depende do RevenueCat configurado (produtos mensal e anual, teste de 14 dias, entitlement `premium`, webhook).
+Protótipo antes: a tela do Premium, que pesa na conversão e passa pela revisão das lojas.
 
 - [ ] `react-native-purchases` com o id da conta como usuário (`logIn` depois do login, `logOut` ao sair).
 - [ ] Tela do Premium: R$ 19,90 por mês ou R$ 159,90 por ano, os 14 dias de teste, **Restaurar compras**, e o que o
@@ -221,6 +232,8 @@ Depende do RevenueCat configurado (produtos mensal e anual, teste de 14 dias, en
 expiração e nova assinatura em sandbox. Conferir que os envios retomam sem novo vínculo e que não há divulgação no Premium.
 
 ## Fase 7: relatório para a consulta
+
+Sem protótipo no canvas: o PDF já é HTML para o `expo-print`, então ele é iterado direto no código.
 
 - [ ] Lista de remédios em uso (grátis): nome, dose e horários, na tela e para compartilhar.
 - [ ] Resumo do período no grátis ("Você registrou 91% das doses nos últimos 30 dias"), com a oferta do Premium.
