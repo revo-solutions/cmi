@@ -52,8 +52,8 @@ starting value: keep each one in a single setting.
 - Social login is mandatory at setup, with no passwords: Google on Android; Apple and Google on iOS (Apple requires
   its own login whenever Google's is offered). The account follows the person to any phone: medications, history,
   contact, profile and Premium. Account deletion is available in the app and deletes everything on the server.
-- Setup order: login, name (prefilled from the login; the notices use it) and birth date (large day/month/year fields,
-  not the system calendar), health questionnaire (one
+- Setup order: login, name (prefilled from the login; the notices use it) and birth date (required, in large day/month/year
+  fields that start empty, not the system calendar), health questionnaire (one
   screen, with a visible "Pular"; a card on **Hoje** asks again days later), medications, trusted contact (optional),
   permissions. Ask for little up front; everything stays editable in the profile.
 - Health conditions are stored as fixed codes (`hipertensao`, `diabetes`, ...) plus the free text of "outra", never as
@@ -91,7 +91,10 @@ starting value: keep each one in a single setting.
   guide) is a device setting, not part of the profile.
 - Navigation is React Navigation (`native-stack` and `bottom-tabs`) with its static configuration in one file, so
   screens stay in `src/features/<feature>`; not `expo-router`, whose `app/` folder would be a second convention. Tabs:
-  **Hoje**, **Remédios**, **Telefones** and **Artigos**; **Perfil** opens from the header.
+  **Hoje**, **Remédios**, **Telefones** and **Artigos**; **Perfil** opens from the header. Until setup is done the
+  root stack shows only its screen (`features/setup`): a group per state, chosen by `if` hooks. The setup step is a
+  device setting per account, so setup resumes where it stopped; an account restored with a profile starts at the
+  permissions. Each step is the form Perfil edits.
 - No state library: SQLite is the source of truth, and screens read it through small hooks that query again when the
   database signals a change.
 - Times and dates are typed in large fields with plus and minus buttons (hour and minute, day, month and year), never
@@ -113,7 +116,9 @@ starting value: keep each one in a single setting.
   medications; call it on opening and after every change to one. A daily reminder is `dose.<medication>.<HHmm>`
   (`delivery: 'alarmClock'` on Android), a snooze `snooze.<medication>.<day>.<HHmm>`, so an action knows its dose
   without the notification's data, which Android's background task doesn't parse. "Tomei" keeps the first tap.
-  At most `maxDailyReminders` (48) daily times, under iOS's 64 pending notifications.
+  At most `maxDailyReminders` (48) daily times, under iOS's 64 pending notifications. It also keeps `birthday`, the
+  local greeting on the next birthday at 9:00 (the 28th outside leap years for 29 February, as the server's notice),
+  scheduled again once it has rung or when the name or birth date changes.
 - The server's ping (see "Push") is a data-only push, `{ "type": "ping" }` with no title or body, so nothing shows.
   The app answers it with a heartbeat from a background notification task (`expo-task-manager`; on iOS the
   `expo-notifications` plugin's `enableBackgroundRemoteNotifications`).
@@ -398,11 +403,12 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
   TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The
   rollout step, applying the migrations and the daily backup come with that choice.
 - The Expo app has social login, the account sessions, sync through the outgoing queue, the heartbeat and the ping,
-  and the medication flow: tabs **Hoje** and **Remédios**, the form, the history, the reminder screen and the
-  reminders (`src/lib/reminders.ts`). OAuth, FCM and APNs still have to be set up and the flow validated on real
-  phones (`mobile/README.md`). A `POST sync` refused with 400 holds up the queue: it is retried, never dropped, and
-  only the card on **Hoje** shows it. Add the other tabs as their features become usable. A phone that ran the old reminder test needs
-  the app reinstalled to drop its leftover test notifications. Validate the reminders on Android and a real iPhone
+  the first-run setup with the profile and the health questionnaire, and the medication flow: tabs **Hoje** and
+  **Remédios**, the form, the history, the reminder screen and the reminders (`src/lib/reminders.ts`). OAuth, FCM
+  and APNs still have to be set up and the flow validated on real phones (`mobile/README.md`). A `POST sync` refused
+  with 400 holds up the queue: it is retried, never dropped, and only the card on **Hoje** shows it. Setup gets the
+  contact step with phase 5. Add the other tabs as their features become usable. A phone that ran the old reminder
+  test needs the app reinstalled to drop its leftover test notifications. Validate the reminders on Android and a real iPhone
   before calling the flow done. `react-native-screens` is native, so running the navigation needs a development or
   preview build made after it was added.
 

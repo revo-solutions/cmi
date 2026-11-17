@@ -2,7 +2,7 @@ import { expect, test } from '@jest/globals';
 
 import { daysInMonth, formatTime, isValidDate, parseTime, stepDate, stepHour, stepMinute, toIsoDate } from './dateFields';
 
-const years = { min: 1900, max: 2026 };
+const years = { min: 1900, max: 2026, start: 1956 };
 
 test('hours wrap around midnight', () => {
   expect(stepHour({ hour: 23, minute: 30 }, 1)).toEqual({ hour: 0, minute: 30 });
@@ -42,7 +42,15 @@ test('the year stays within its bounds', () => {
   expect(stepDate({ day: 1, month: 1, year: 1900 }, 'year', -1, years).year).toBe(1900);
 });
 
+test('an empty part starts on the first step, and an unknown year allows 29 February', () => {
+  const empty = { day: null, month: null, year: null };
+  expect(stepDate(empty, 'day', -1, years)).toEqual({ day: 1, month: null, year: null });
+  expect(stepDate(empty, 'year', 1, years)).toEqual({ day: null, month: null, year: 1956 });
+  expect(stepDate({ day: 28, month: 2, year: null }, 'day', 1, years)).toEqual({ day: 29, month: 2, year: null });
+});
+
 test('a date is valid only if its day exists', () => {
+  expect(isValidDate({ day: 9, month: 3, year: null })).toBe(false);
   expect(isValidDate({ day: 29, month: 2, year: 1952 })).toBe(true);
   expect(isValidDate({ day: 29, month: 2, year: 1953 })).toBe(false);
   expect(toIsoDate({ day: 9, month: 3, year: 1950 })).toBe('1950-03-09');

@@ -1,7 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
-import { Settings } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { Alert, Linking, Platform } from 'react-native';
+import { Alert } from 'react-native';
 
 import { ApiUnavailableError } from '../../api/client';
 import { AppText } from '../../components/AppText';
@@ -13,9 +12,14 @@ import { useDisplayMode } from '../../lib/displayMode';
 import { deleteAccount, PendingChangesError, signOut } from '../../lib/session';
 import { requestSync } from '../../lib/sync';
 import { forgetGoogleSignIn } from '../auth/socialLogin';
+import { BatteryCard } from './BatteryCard';
+import { formatBirthDate } from './birthday';
+import { conditionLabels } from './health';
+import { hasHealthAnswers, useProfile } from './store';
 
 export function ProfileScreen() {
   const navigation = useNavigation();
+  const profile = useProfile();
   const { largeText, setLargeText } = useDisplayMode();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,6 +59,34 @@ export function ProfileScreen() {
 
   return (
     <Screen title="Perfil" onBack={() => navigation.goBack()}>
+      {profile && (
+        <>
+          <Card>
+            <AppText variant="title" accessibilityRole="header">Sobre você</AppText>
+            <AppText>{profile.name ?? 'Nome não informado'}</AppText>
+            <AppText variant="support">
+              {profile.birthDate ? `Nascimento: ${formatBirthDate(profile.birthDate)}` : 'Data de nascimento não informada'}
+            </AppText>
+            <Button
+              label="Editar" accessibilityLabel="Editar nome e data de nascimento" variant="secondary"
+              onPress={() => navigation.navigate('ProfileAbout')}
+            />
+          </Card>
+          <Card>
+            <AppText variant="title" accessibilityRole="header">Sua saúde</AppText>
+            <AppText>
+              {hasHealthAnswers(profile)
+                ? conditionLabels(profile.conditions, profile.otherCondition).join(', ') || 'Nenhuma condição marcada'
+                : 'Questionário não respondido'}
+            </AppText>
+            <Button
+              label="Editar" accessibilityLabel="Editar o questionário de saúde" variant="secondary"
+              onPress={() => navigation.navigate('ProfileHealth')}
+            />
+          </Card>
+        </>
+      )}
+
       <Card>
         <YesNo
           question="Letras grandes e mais contraste"
@@ -63,18 +95,7 @@ export function ProfileScreen() {
         />
         <AppText variant="support">Vale só para este celular e soma com o tamanho de letra do sistema.</AppText>
       </Card>
-
-      {/* Xiaomi, Samsung and Motorola close apps to save battery (docs/arquitetura.md, "Pontos de atenção no Android"). */}
-      {Platform.OS === 'android' && (
-        <Card>
-          <AppText variant="title" accessibilityRole="header">Para os lembretes tocarem na hora</AppText>
-          <AppText>
-            Em alguns celulares, a economia de bateria atrasa os lembretes. Nos ajustes do app, em Bateria, escolha “Sem
-            restrições”.
-          </AppText>
-          <Button label="Abrir os ajustes do app" variant="secondary" icon={Settings} onPress={() => void Linking.openSettings()} />
-        </Card>
-      )}
+      <BatteryCard />
       <Card accessibilityState={{ busy }}>
         <AppText variant="title" accessibilityRole="header">Conta</AppText>
         <AppText>Sair mantém sua conta e seus dados salvos no servidor.</AppText>

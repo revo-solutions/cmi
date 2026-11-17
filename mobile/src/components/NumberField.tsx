@@ -8,7 +8,8 @@ import { AppText } from './AppText';
 
 type NumberFieldProps = {
   label: string;
-  value: number;
+  // Null shows an empty box, waiting to be filled in.
+  value: number | null;
   digits: number;
   onStep: (delta: number) => void;
   // A typed number, already a whole number; the caller decides whether it fits.
@@ -20,7 +21,7 @@ type NumberFieldProps = {
 export function NumberField({ label, value, digits, onStep, onType }: NumberFieldProps) {
   const { textScale, stacked } = useDisplayMode();
   const [draft, setDraft] = useState<string | null>(null);
-  const shown = String(value).padStart(digits, '0');
+  const shown = value === null ? '' : String(value).padStart(digits, '0');
 
   const commit = () => {
     if (draft !== null && /^\d+$/.test(draft)) {

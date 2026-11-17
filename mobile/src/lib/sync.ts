@@ -1,4 +1,5 @@
 import { addNetworkStateListener } from 'expo-network';
+import type { SQLiteDatabase } from 'expo-sqlite';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
@@ -7,7 +8,7 @@ import { accountActivateDevice, syncDownload, syncUpload } from '../api/generate
 import { blockedAccountKey, restoreAccountData } from './accountData';
 import { getDatabase, getSetting, setSetting, useRows, writeTransaction } from './db';
 import { nextAttempt, outboxBatch, recoverableDoses, retryStartMs, type OutboxRow } from './outbox';
-import { loadSession, SessionRequiredError, withSession } from './session';
+import { canEditAccount, loadSession, localAccountId, SessionRequiredError, withSession } from './session';
 
 const batchSize = 100;
 let sending: Promise<void> | undefined;
@@ -87,6 +88,18 @@ export function flushOutbox(force = false) {
 
 export function requestSync(force = false) {
   return flushOutbox(force).catch(() => undefined);
+}
+
+// A change to the signed-in account's records, saved with its queued copy and then sent.
+export async function changeAccount(change: (transaction: SQLiteDatabase) => Promise<void>) {
+  const accountId = await localAccountId();
+  await writeTransaction(async (transaction) => {
+    if (!canEditAccount(accountId)) {
+      throw new SessionRequiredError();
+    }
+    await change(transaction);
+  });
+  void requestSync();
 }
 
 export function useOutboxSync(accountId: string | undefined) {

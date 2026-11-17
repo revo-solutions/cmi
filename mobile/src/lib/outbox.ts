@@ -26,6 +26,11 @@ export const pendingNoticeMs = 5 * 60_000;
 export const retryStartMs = 15_000;
 const retryLimitMs = 5 * 60_000;
 
+// Last write wins on the server, so a change is always later than the one it replaces, even with the clock set back.
+export function updatedAfter(previous?: string | null) {
+  return new Date(Math.max(Date.now(), previous ? Date.parse(previous) + 1 : 0)).toISOString();
+}
+
 export async function enqueue<K extends keyof Changes>(db: SQLiteDatabase, type: K, change: Changes[K]) {
   await db.runAsync('INSERT INTO outbox (type, payload, created_at) VALUES (?, ?, ?)', type, JSON.stringify(change), new Date().toISOString());
 }

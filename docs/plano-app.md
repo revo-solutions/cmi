@@ -140,16 +140,20 @@ duplicação, `409`, revogação de contato feita pelo outro aparelho, troca de 
 Ordem fixa: login, nome e nascimento, questionário, medicamentos, contato, permissões. Cada passo reaproveita a tela
 de edição do Perfil. Protótipo antes: o questionário de saúde, com as condições, as três perguntas e o **Pular**.
 
-- [ ] Nome preenchido com o retorno do login nativo quando disponível, sem substituir o nome já sincronizado.
+- [ ] Revisar o questionário de saúde em 100% e 150% da fonte. Ele foi implementado sem protótipo no canvas, com os
+      componentes da fase 1 (`HealthScreen`); ajustar no aparelho com o Metro, como as telas sem protótipo.
+- [x] Nome preenchido com o retorno do login nativo quando disponível, sem substituir o nome já sincronizado.
       A API só retorna tokens, e a Apple só entrega o nome no primeiro login com o app; num segundo aparelho ou numa
-      reinstalação, o nome vem do sync ou a pessoa digita. Data de nascimento em campos grandes de dia, mês e ano.
-- [ ] Questionário numa tela só, com **Pular** visível: condições pelos códigos de `HealthCondition.Codes` (rótulos
+      reinstalação, o nome vem do sync ou a pessoa digita. Data de nascimento obrigatória, em campos grandes de dia,
+      mês e ano que começam vazios, para não festejar uma data inventada.
+- [x] Questionário numa tela só, com **Pular** visível: condições pelos códigos de `HealthCondition.Codes` (rótulos
       só no app, "nenhuma" exclusiva, texto livre de "outra") e as três perguntas de sim ou não. Dificuldade para
       enxergar oferece letras grandes e alto contraste. As preferências podem ser alteradas no Perfil.
-- [ ] Cartão na **Hoje** que volta a pedir o questionário alguns dias depois de pulado (o número num ajuste só).
-- [ ] Medicamentos e contato reaproveitam as telas das fases 2 e 5; o contato pode ser pulado.
-- [ ] Permissões: notificações, alarme exato e economia de bateria no Android.
-- [ ] Notificação local de parabéns no aniversário, reagendada quando a data muda ou a conta é restaurada. Alinhar
+- [x] Cartão na **Hoje** que volta a pedir o questionário alguns dias depois de pulado (o número num ajuste só).
+- [x] Medicamentos reaproveitam o cadastro da fase 2. O passo do contato entra com a fase 5, entre medicamentos e
+      permissões, e pode ser pulado.
+- [x] Permissões: notificações, alarme exato e economia de bateria no Android.
+- [x] Notificação local de parabéns no aniversário, reagendada quando a data muda ou a conta é restaurada. Alinhar
       29 de fevereiro com o servidor e separar essa notificação do aviso Premium ao familiar.
 
 **Aceite:** interromper e retomar a configuração, pular saúde e contato, negar notificações e ainda usar o app.

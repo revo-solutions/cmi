@@ -14,6 +14,7 @@ import { colors } from '../../theme';
 import { nextDose, type Dose } from '../medications/doses';
 import { formatClock, formatDay } from '../medications/format';
 import { useToday } from '../medications/useToday';
+import { HealthCard } from './HealthCard';
 import { ReminderPermissionCard } from './ReminderPermissionCard';
 import { SyncStatusCard } from './SyncStatusCard';
 
@@ -57,6 +58,7 @@ export function TodayScreen() {
       )}
 
       <Button label="Ver histórico" variant="secondary" icon={History} onPress={() => navigation.navigate('History', {})} />
+      <HealthCard />
     </Screen>
   );
 }

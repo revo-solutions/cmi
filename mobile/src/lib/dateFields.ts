@@ -41,23 +41,40 @@ export function daysInMonth(month: number, year: number) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-export function stepDate(date: DateParts, field: keyof DateParts, delta: number, years: { min: number; max: number }): DateParts {
+// A date being typed: a part is null until the person fills it in, so nothing is guessed for them.
+export type DateDraft = { [K in keyof DateParts]: number | null };
+
+export type YearRange = { min: number; max: number; start: number };
+
+// The longest the day can be with what is known so far: an unknown year allows 29 February.
+export function dayLimit({ month, year }: DateDraft) {
+  return daysInMonth(month ?? 1, year ?? 2000);
+}
+
+// Plus or minus on an empty part starts it: 1 for the day and month, the range's start for the year.
+export function stepDate(date: DateDraft, field: keyof DateParts, delta: number, years: YearRange): DateDraft {
   const next = { ...date };
-  if (field === 'day') {
-    next.day = wrap(date.day + delta, 1, daysInMonth(date.month, date.year));
+  const current = date[field];
+  if (current === null) {
+    next[field] = field === 'year' ? years.start : 1;
+  } else if (field === 'day') {
+    next.day = wrap(current + delta, 1, dayLimit(date));
   } else if (field === 'month') {
-    next.month = wrap(date.month + delta, 1, 12);
+    next.month = wrap(current + delta, 1, 12);
   } else {
-    next.year = Math.min(years.max, Math.max(years.min, date.year + delta));
+    next.year = Math.min(years.max, Math.max(years.min, current + delta));
   }
 
-  next.day = Math.min(next.day, daysInMonth(next.month, next.year));
+  if (next.day !== null) {
+    next.day = Math.min(next.day, dayLimit(next));
+  }
   return next;
 }
 
-export function isValidDate({ day, month, year }: DateParts) {
+export function isValidDate(date: DateDraft): date is DateParts {
+  const { day, month, year } = date;
   return Number.isInteger(day) && Number.isInteger(month) && Number.isInteger(year)
-    && month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(month, year);
+    && month! >= 1 && month! <= 12 && day! >= 1 && day! <= daysInMonth(month!, year!);
 }
 
 export function toIsoDate({ day, month, year }: DateParts) {

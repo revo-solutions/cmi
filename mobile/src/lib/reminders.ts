@@ -35,6 +35,8 @@ import {
   type ReminderKey,
 } from '../features/medications/reminderPlan';
 import { isDoseTaken, listMedications, recordDose } from '../features/medications/store';
+import { birthdayReminder } from '../features/profile/birthday';
+import { getProfile } from '../features/profile/store';
 import { canEditAccount, localAccountId } from './session';
 import { requestSync } from './sync';
 
@@ -83,19 +85,40 @@ export async function reminderPermission(ask: boolean): Promise<ReminderPermissi
   return 'granted';
 }
 
-// Makes the scheduled daily reminders match the medications. Call it on opening and after every change.
+const birthdayIdentifier = 'birthday';
+
+// Makes the scheduled daily reminders match the medications, and the birthday greeting the profile. Call it on opening
+// and after every change to either.
 export async function reconcileReminders() {
   const accountId = await localAccountId();
   if (!accountId || await reminderPermission(false) !== 'granted') {
     return;
   }
   const wanted = dailyReminders(await listMedications());
-  const scheduled = (await getAllScheduledNotificationsAsync()).map((request) => ({
+  const requests = await getAllScheduledNotificationsAsync();
+  const scheduled = requests.map((request) => ({
     identifier: request.identifier,
     title: request.content.title ?? '',
     body: request.content.body ?? '',
   }));
   const plan = planReminders(wanted, scheduled);
+
+  // The birthday greeting is the next birthday only; a date trigger can't skip 29 February in other years.
+  const { name, birthDate } = await getProfile();
+  const birthday = birthDate ? birthdayReminder(name, birthDate, new Date()) : null;
+  const current = requests.find((request) => request.identifier === birthdayIdentifier);
+  const birthdayChanged = !birthday || !current || current.content.title !== birthday.title || current.content.data?.date !== birthday.date;
+  if (current && !birthday) {
+    plan.cancel.push(birthdayIdentifier);
+  }
+  // Scheduling under the same identifier replaces the old one.
+  if (birthday && birthdayChanged && canEditAccount(accountId)) {
+    await scheduleNotificationAsync({
+      identifier: birthdayIdentifier,
+      content: { title: birthday.title, body: birthday.body, data: { date: birthday.date } },
+      trigger: { type: SchedulableTriggerInputTypes.DATE, date: birthday.at, channelId: channel },
+    });
+  }
 
   for (const identifier of plan.cancel) {
     if (!canEditAccount(accountId)) {

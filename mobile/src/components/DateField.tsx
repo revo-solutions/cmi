@@ -1,12 +1,12 @@
 import { StyleSheet, View } from 'react-native';
 
-import { daysInMonth, stepDate, type DateParts } from '../lib/dateFields';
+import { dayLimit, stepDate, type DateDraft, type DateParts, type YearRange } from '../lib/dateFields';
 import { NumberField } from './NumberField';
 
 type DateFieldProps = {
-  value: DateParts;
-  onChange: (value: DateParts) => void;
-  years: { min: number; max: number };
+  value: DateDraft;
+  onChange: (value: DateDraft) => void;
+  years: YearRange;
 };
 
 // Day, month and year in large fields, one per row, such as the birth date (AGENTS.md, "Product rules").
@@ -15,9 +15,9 @@ export function DateField({ value, onChange, years }: DateFieldProps) {
     const next = { ...value, [field]: typed };
     const fits = field === 'year'
       ? typed >= years.min && typed <= years.max
-      : typed >= 1 && (field === 'month' ? typed <= 12 : typed <= daysInMonth(value.month, value.year));
+      : typed >= 1 && (field === 'month' ? typed <= 12 : typed <= dayLimit(value));
     if (fits) {
-      onChange({ ...next, day: Math.min(next.day, daysInMonth(next.month, next.year)) });
+      onChange({ ...next, day: next.day === null ? null : Math.min(next.day, dayLimit(next)) });
     }
   };
 

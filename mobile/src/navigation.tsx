@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNavigationContainerRef, createStaticNavigation, type StaticParamList } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { House, Pill, type LucideIcon } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { AppText } from './components/AppText';
@@ -14,7 +14,15 @@ import { HistoryScreen } from './features/medications/HistoryScreen';
 import { MedicationFormScreen } from './features/medications/MedicationFormScreen';
 import { MedicationsScreen } from './features/medications/MedicationsScreen';
 import { ReminderScreen } from './features/medications/ReminderScreen';
+import { AboutScreen } from './features/profile/AboutScreen';
+import { HealthScreen } from './features/profile/HealthScreen';
 import { ProfileScreen } from './features/profile/ProfileScreen';
+import { hasHealthAnswers, useProfile } from './features/profile/store';
+import {
+  askHealthLater, firstSetupStep, saveSetupStep, SetupContext, useNeedsSetup, useSetupDone, useStoredSetupStep,
+  type SetupStep,
+} from './features/setup/setup';
+import { SetupScreen } from './features/setup/SetupScreen';
 import { TodayScreen } from './features/today/TodayScreen';
 import { DisplayModeProvider } from './lib/displayMode';
 import { useHeartbeat } from './lib/heartbeat';
@@ -56,15 +64,31 @@ const Tabs = createBottomTabNavigator({
 });
 
 // Screens draw their own header (components/Screen), so it grows with the system font and the large-text mode.
+// Until setup is done only its screen exists; the first screen of the group shown is where the app opens.
 const RootStack = createNativeStackNavigator({
   screenOptions: { headerShown: false, contentStyle: { backgroundColor: colors.surface } },
-  screens: {
-    Tabs,
-    Profile: ProfileScreen,
-    MedicationForm: MedicationFormScreen,
-    History: HistoryScreen,
-    Reminder: ReminderScreen,
-    DeviceConflict: DeviceConflictScreen,
+  groups: {
+    Setup: {
+      if: useNeedsSetup,
+      screens: { Setup: SetupScreen },
+    },
+    App: {
+      if: useSetupDone,
+      screens: {
+        Tabs,
+        Profile: ProfileScreen,
+        ProfileAbout: AboutScreen,
+        ProfileHealth: HealthScreen,
+        History: HistoryScreen,
+      },
+    },
+    Shared: {
+      screens: {
+        MedicationForm: MedicationFormScreen,
+        Reminder: ReminderScreen,
+        DeviceConflict: DeviceConflictScreen,
+      },
+    },
   },
 });
 
@@ -90,6 +114,26 @@ function openReminder(reminder: OpenedReminder | null) {
 
 function AccountNavigation({ accountId }: { accountId: string }) {
   const blocked = useSyncBlocked(accountId);
+  const profile = useProfile();
+  const storedStep = useStoredSetupStep(accountId);
+  const step = storedStep ?? (profile && firstSetupStep(profile));
+  const setup = useMemo(() => step && {
+    step,
+    setStep: (next: SetupStep) => {
+      saveSetupStep(accountId, next).catch((error: unknown) => console.warn('Não foi possível salvar a configuração.', error));
+    },
+  }, [accountId, step]);
+
+  // The first step is worked out once, so saving the profile doesn't move setup along by itself.
+  useEffect(() => {
+    if (storedStep === null && profile) {
+      const first = firstSetupStep(profile);
+      void saveSetupStep(accountId, first);
+      if (first === 'permissions' && !hasHealthAnswers(profile)) {
+        void askHealthLater(accountId);
+      }
+    }
+  }, [accountId, storedStep, profile]);
 
   useEffect(() => {
     setUpReminders()
@@ -116,12 +160,19 @@ function AccountNavigation({ accountId }: { accountId: string }) {
     }
   }, [blocked]);
 
-  return <Navigation ref={navigation} onReady={() => {
-    openReminder(waiting);
-    if (blocked) {
-      navigation.navigate('DeviceConflict');
-    }
-  }} />;
+  if (!setup) {
+    return null;
+  }
+  return (
+    <SetupContext.Provider value={setup}>
+      <Navigation ref={navigation} onReady={() => {
+        openReminder(waiting);
+        if (blocked) {
+          navigation.navigate('DeviceConflict');
+        }
+      }} />
+    </SetupContext.Provider>
+  );
 }
 
 function SessionNavigation() {

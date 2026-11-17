@@ -2,9 +2,9 @@ import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { getDatabase, useRows, writeTransaction } from '../../lib/db';
-import { enqueue } from '../../lib/outbox';
-import { canEditAccount, localAccountId, SessionRequiredError } from '../../lib/session';
-import { requestSync } from '../../lib/sync';
+import { enqueue, updatedAfter } from '../../lib/outbox';
+import { canEditAccount, localAccountId } from '../../lib/session';
+import { changeAccount, requestSync } from '../../lib/sync';
 import { sameTimes, type DoseRecord, type Medication, type Period } from './doses';
 
 type MedicationRow = {
@@ -74,10 +74,6 @@ export type MedicationInput = {
   sharedWithContact: boolean;
 };
 
-function updatedAfter(previous?: string) {
-  return new Date(Math.max(Date.now(), previous ? Date.parse(previous) + 1 : 0)).toISOString();
-}
-
 function apiTime(time: string) {
   return `${time}:00`;
 }
@@ -89,23 +85,12 @@ async function queueMedication(transaction: SQLiteDatabase, row: MedicationRow |
   }
 }
 
-async function changeMedication(change: (transaction: SQLiteDatabase) => Promise<void>) {
-  const accountId = await localAccountId();
-  await writeTransaction(async (transaction) => {
-    if (!canEditAccount(accountId)) {
-      throw new SessionRequiredError();
-    }
-    await change(transaction);
-  });
-  void requestSync();
-}
-
 // A new medication or a change to its times starts a period.
 export async function saveMedication(id: string | null, input: MedicationInput) {
   const times = [...input.times].sort();
   const medicationId = id ?? randomUUID();
 
-  await changeMedication(async (transaction) => {
+  await changeAccount(async (transaction) => {
     const existing = id ? await transaction.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', id) : null;
     if (id && (!existing || existing.deleted)) {
       return;
@@ -135,7 +120,7 @@ export async function saveMedication(id: string | null, input: MedicationInput) 
 }
 
 export async function setPaused(id: string, paused: boolean) {
-  await changeMedication(async (transaction) => {
+  await changeAccount(async (transaction) => {
     const existing = await transaction.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', id);
     if (!existing || existing.deleted || (existing.paused === 1) === paused) {
       return;
@@ -151,7 +136,7 @@ export async function setPaused(id: string, paused: boolean) {
 
 // Kept as a tombstone because dose records point at it.
 export async function deleteMedication(id: string) {
-  await changeMedication(async (transaction) => {
+  await changeAccount(async (transaction) => {
     const existing = await transaction.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', id);
     if (!existing || existing.deleted) {
       return;
