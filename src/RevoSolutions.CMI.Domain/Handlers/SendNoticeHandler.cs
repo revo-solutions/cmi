@@ -4,6 +4,7 @@ using RevoSolutions.CMI.Domain.Core.Contracts.Repositories;
 using RevoSolutions.CMI.Domain.Core.Contracts.UnitOfWork;
 using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Events;
+using RevoSolutions.CMI.Domain.Services;
 
 namespace RevoSolutions.CMI.Domain.Handlers;
 
@@ -11,13 +12,15 @@ public class SendNoticeHandler : IDomainEventHandler<NoticeCreatedDomainEvent>
 {
     private readonly IRepository<Notice> _notices;
     private readonly IRepository<Contact> _contacts;
+    private readonly NoticeMessageBuilder _messages;
     private readonly INoticeSender _sender;
     private readonly IUnitOfWork _unitOfWork;
 
-    public SendNoticeHandler(IRepository<Notice> notices, IRepository<Contact> contacts, INoticeSender sender, IUnitOfWork unitOfWork)
+    public SendNoticeHandler(IRepository<Notice> notices, IRepository<Contact> contacts, NoticeMessageBuilder messages, INoticeSender sender, IUnitOfWork unitOfWork)
     {
         _notices = notices;
         _contacts = contacts;
+        _messages = messages;
         _sender = sender;
         _unitOfWork = unitOfWork;
     }
@@ -33,14 +36,19 @@ public class SendNoticeHandler : IDomainEventHandler<NoticeCreatedDomainEvent>
             return;
         }
 
-        // Revoked after the notice was decided: nobody to tell.
+        // Revoked, or PARAR, after the notice was decided: nobody to tell.
         var contact = await _contacts.FirstOrDefault(c => c.AccountId == notice.AccountId);
-        if (contact is null)
+        if (contact?.WhatsAppNumber is null || !contact.ReceivesNotices())
         {
             return;
         }
 
-        await _sender.Send(notice, contact, cancellationToken);
+        if (await _messages.Build(notice, contact) is not { } message)
+        {
+            return;
+        }
+
+        await _sender.Send(contact.WhatsAppNumber, message, cancellationToken);
 
         notice.SentAt = DateTime.UtcNow;
         await _unitOfWork.CommitAsync();

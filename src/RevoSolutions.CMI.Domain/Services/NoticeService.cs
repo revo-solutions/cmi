@@ -40,9 +40,9 @@ public class NoticeService
         _settings = settings;
     }
 
-    // Only accounts with a trusted contact get notices. The WhatsApp link and Premium narrow this further once they exist.
+    // Only accounts whose contact linked up on WhatsApp and didn't answer PARAR. Premium narrows this further once it exists.
     public async Task<IReadOnlyList<Guid>> AccountsToCheck() =>
-        (await _contacts.Get(_ => true)).Select(c => c.AccountId).Distinct().ToList();
+        (await _contacts.Get(c => c.LinkedAt != null && c.StoppedAt == null)).Select(c => c.AccountId).Distinct().ToList();
 
     public async Task Check(Guid accountId, DateTime now)
     {
@@ -93,8 +93,7 @@ public class NoticeService
     private async Task CheckContact(Account account, DateTime now, DateOnly today)
     {
         var lastSeen = account.LastSeenAt!.Value;
-        var limit = account.Platform == DevicePlatform.Ios ? _settings.NoContactIos : _settings.NoContactAndroid;
-        if (now - lastSeen < limit)
+        if (now - lastSeen < _settings.NoContactLimit(account.Platform))
         {
             return;
         }
@@ -124,20 +123,16 @@ public class NoticeService
             .Select(d => (d.MedicationId, d.ScheduledDate, d.ScheduledTime))
             .ToHashSet();
 
-        var missed = new[] { yesterday, today }
-            .SelectMany(date => medications.SelectMany(medication => medication.Times.Select(time => (date, time, medication))))
-            .Select(dose => (dose.date, dose.time, dose.medication, scheduledAt: ToUtc(dose.date, dose.time, timeZone)))
-            .Where(dose => dose.scheduledAt is { } scheduledAt
-                // A dose scheduled before the medication's last change (added, edited, resumed) got no reminder.
-                && scheduledAt >= dose.medication.UpdatedAt
-                && scheduledAt + _settings.MissedDoseAfter <= now
-                && scheduledAt + _settings.MissedDoseAfter > now - MissedDoseCatchUp
-                && account.LastSeenAt >= scheduledAt + _settings.MissedDoseAfter - _settings.RecentContact
-                && !taken.Contains((dose.medication.Id, dose.date, dose.time)))
-            .Select(dose => (dose.date, dose.time))
+        // Doses whose deadline passed within the catch-up window.
+        var latest = now - _settings.MissedDoseAfter;
+        var missed = medications
+            .SelectMany(medication => medication.DosesBetween(latest - MissedDoseCatchUp, latest, timeZone)
+                .Where(dose => !taken.Contains((medication.Id, dose.Date, dose.Time))))
+            .Where(dose => account.LastSeenAt >= dose.ScheduledAt + _settings.MissedDoseAfter - _settings.RecentContact)
+            .Select(dose => (dose.Date, dose.Time))
             .Distinct()
-            .OrderBy(dose => dose.date)
-            .ThenBy(dose => dose.time);
+            .OrderBy(dose => dose.Date)
+            .ThenBy(dose => dose.Time);
 
         var decided = new Dictionary<DateOnly, int>();
         foreach (var (date, time) in missed)
@@ -166,13 +161,6 @@ public class NoticeService
 
         await _notices.Add(Notice.Create(account.Id, kind, key, day, scheduledTime));
         return true;
-    }
-
-    // A wall-clock time skipped by a daylight-saving change never happened.
-    private static DateTime? ToUtc(DateOnly date, TimeOnly time, TimeZoneInfo timeZone)
-    {
-        var local = date.ToDateTime(time);
-        return timeZone.IsInvalidTime(local) ? null : TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
     }
 
     // Someone born on 29 February is remembered on the 28th in other years.

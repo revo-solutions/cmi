@@ -34,6 +34,9 @@ public class Account : EntityBase
     // The latest "Tomei" received, for the abandonment pause.
     public DateTime? LastTakenAt { get; set; }
 
+    // How the notices name the person ("sua mãe, Maria"). The app prefills it from the login.
+    public string? Name { get; set; }
+
     public DateOnly? BirthDate { get; set; }
 
     // HealthCondition codes, never display text.
@@ -100,6 +103,7 @@ public class Account : EntityBase
 
     public void UpdateProfile(ProfileModel profile)
     {
+        Name = profile.Name;
         BirthDate = profile.BirthDate;
         Conditions = profile.Conditions.ToList();
         OtherCondition = profile.OtherCondition;

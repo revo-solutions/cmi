@@ -129,6 +129,10 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<bool?>("LivesAlone")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("OtherCondition")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -183,6 +187,14 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LinkCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("LinkedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -198,12 +210,24 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTime?>("StoppedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WhatsAppNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
+
+                    b.HasIndex("LinkCode")
+                        .IsUnique();
+
+                    b.HasIndex("WhatsAppNumber");
 
                     b.ToTable("Contacts", (string)null);
                 });

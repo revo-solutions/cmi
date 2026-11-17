@@ -16,6 +16,7 @@ public partial class SyncMapper
 
     public static ProfileModel? ToProfile(Account account) => account.ProfileUpdatedAt is { } updatedAt
         ? new ProfileModel(
+            account.Name,
             account.BirthDate,
             account.Conditions,
             account.OtherCondition,

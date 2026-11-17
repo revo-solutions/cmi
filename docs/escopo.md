@@ -75,7 +75,7 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 ### Configuração inicial
 
 - O aplicativo roda apenas no celular da pessoa idosa. Um familiar pode ajudar presencialmente a fazer a configuração. Não há assistência remota no MVP.
-- Ordem: login, data de nascimento, questionário de saúde (que pode ser pulado), medicamentos, contato de confiança (opcional) e permissões.
+- Ordem: login, nome e data de nascimento, questionário de saúde (que pode ser pulado), medicamentos, contato de confiança (opcional) e permissões.
 
 ### Conta e perfil
 
@@ -83,7 +83,8 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 - **A conta identifica a pessoa em qualquer celular.** Ao trocar de celular, entrar com a mesma conta restaura os medicamentos, os horários, o histórico, o contato de confiança, o perfil e a assinatura.
 - **Sincronização.** Todos os dados do app vão para o servidor quando houver conexão, e o app continua funcionando sem internet. Há um aparelho ativo por conta: ao entrar em outro celular, o anterior para de sincronizar.
 - **E-mail.** Quem entra pela Apple com "Ocultar meu e-mail" entrega um endereço de redirecionamento, não o e-mail real.
-- **Data de nascimento.** Logo depois do login, com campos grandes de dia, mês e ano (o calendário do sistema é difícil para esse público). No dia do aniversário, o app mostra uma notificação de parabéns.
+- **Nome.** Logo depois do login, já preenchido com o nome da conta Google ou Apple, para a pessoa confirmar ou dizer como prefere ser chamada. Os avisos ao familiar usam esse nome: "sua mãe, Maria".
+- **Data de nascimento.** Na mesma tela do nome, com campos grandes de dia, mês e ano (o calendário do sistema é difícil para esse público). No dia do aniversário, o app mostra uma notificação de parabéns.
 - **Questionário de saúde.** Logo depois da data de nascimento, numa tela só, com botões grandes e um **Pular** bem visível. Se a pessoa pular, um cartão na tela **Hoje** volta a pedir alguns dias depois. Tudo fica editável no Perfil.
   - **Condições** (múltipla escolha): pressão alta, diabetes, colesterol alto, problema no coração, artrose ou artrite, osteoporose, tireoide, depressão ou ansiedade, problema de memória, asma ou bronquite crônica, AVC (derrame), problema nos rins, outra (texto livre) e nenhuma.
   - **Três perguntas de sim ou não:** mora sozinho(a)? Caiu nos últimos 12 meses? Tem dificuldade para enxergar? A última pode ligar o modo de letras grandes e alto contraste.

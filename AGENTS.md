@@ -6,7 +6,8 @@ installs the app. Single-maintainer project. React Native + Expo in `mobile/`; a
 on the same simplified DDD modular monolith as RevoSolutions.TVP. What the MVP includes and what comes after it:
 `docs/escopo.md`. The stack and the reasons behind it: `docs/arquitetura.md`.
 
-The back-end solution exists (`RevoSolutions.CMI.slnx`); the Expo app and the `Anticorruption.*` projects don't yet.
+The back-end solution exists (`RevoSolutions.CMI.slnx`) with `Anticorruption.WhatsApp`; the Expo app and the other
+`Anticorruption.*` projects don't yet.
 Create them as the work needs them, following this file, and update it when a decision here changes or a new one is
 made.
 
@@ -50,7 +51,8 @@ starting value: keep each one in a single setting.
 - Social login is mandatory at setup, with no passwords: Google on Android; Apple and Google on iOS (Apple requires
   its own login whenever Google's is offered). The account follows the person to any phone: medications, history,
   contact, profile and Premium. Account deletion is available in the app and deletes everything on the server.
-- Setup order: login, birth date (large day/month/year fields, not the system calendar), health questionnaire (one
+- Setup order: login, name (prefilled from the login; the notices use it) and birth date (large day/month/year fields,
+  not the system calendar), health questionnaire (one
   screen, with a visible "Pular"; a card on **Hoje** asks again days later), medications, trusted contact (optional),
   permissions. Ask for little up front; everything stays editable in the profile.
 - Health conditions are stored as fixed codes (`hipertensao`, `diabetes`, ...) plus the free text of "outra", never as
@@ -174,15 +176,36 @@ How it is built:
   repeat only after the state changes (the no-contact key is the last contact, the pause key the last "Tomei").
 - `Notice.Create` raises `NoticeCreatedDomainEvent`; `SendNoticeHandler` sends it through `INoticeSender`
   (`Domain/Contracts/Messaging`) and sets `SentAt`, which stops a retried delivery from paying twice. The message is
-  built when it is sent, from the current data. `LoggingNoticeSender` stands in until `Anticorruption.WhatsApp`.
+  built when it is sent, from the current data, by `NoticeMessageBuilder`: a `NoticeTemplate` and its values, the
+  person always first in the "of" form ("da sua mãe, Maria"). A missed dose recorded in the meantime sends nothing.
 - The ping is `Account.RequestPing`, which raises `DevicePingRequestedDomainEvent`; nothing handles it until
   `Anticorruption.ExpoPush`, so the no-contact notice simply comes `PingWait` after the limit.
 - `NoticeWorker` (every minute, one scope per account) and `OutboxWorker` (every 5 seconds) are the hosted services.
   Tests remove both and call `NoticeService` and `OutboxProcessor` themselves.
-- Only accounts with a contact are checked, and only medications with `SharedWithContact` (not paused, not deleted)
-  count. Abandonment counts from `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
+- Only accounts whose contact linked up on WhatsApp and didn't answer PARAR are checked (`AccountsToCheck`), and
+  only medications with `SharedWithContact` (not paused, not deleted) count. The handler checks the contact again
+  before sending. Abandonment counts from `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
 - A missed dose is notified only while its deadline is under an hour old, so a worker outage or a contact added
   later doesn't send stale notices, and only for doses scheduled after the medication's last change.
+
+### WhatsApp
+
+`Anticorruption.WhatsApp` calls Meta's Cloud API directly (`WhatsAppClient`): template messages for notices, and free
+text only for replies inside the 24 hours a message from that number opened. Settings are the `WhatsApp` section
+(`PhoneNumberId`, `AccessToken`, `AppSecret`, `VerifyToken`, `ApiVersion`); the secrets go in user secrets or the
+environment. Without an `AccessToken` nothing is sent, only logged, which is how local runs work. Logs never carry
+phone numbers or message text.
+
+- The template names and the order of their values are in `docs/arquitetura.md` ("Modelos de mensagem");
+  `WhatsAppNoticeSender.TemplateName` maps `NoticeTemplate` to them. A template's text changes in WhatsApp Manager,
+  its values here.
+- Linking: every contact gets an 8-character `LinkCode`; the app reads it from `GET contact/link` and puts it, as a word
+  of its own, in the prefilled message to the app's number. The webhook (`api/v1/webhooks/whatsapp`, signed with
+  `X-Hub-Signature-256`) hands text messages to `ContactLinkService.Receive`: a known code links the sender's number
+  (`Contact.WhatsAppNumber`, where notices go, not `Phone`), PARAR stops every contact with that number, and sending
+  the code again resumes. Each message gets a reply.
+- A new phone for the contact drops the link and draws a new code: another person links up themselves.
+- Tests replace Meta with `FakeWhatsApp`, an `HttpMessageHandler` that records what the API sends.
 
 ### API contract
 
@@ -237,12 +260,12 @@ npx tsc --noEmit
 
 What the MVP includes and what comes after it: `docs/escopo.md`.
 
-- The back end has login, refresh, logout, the active device, account deletion, the profile, sync, the heartbeat,
-  the notice rules, the worker and the outbox. Not yet: the WhatsApp, ExpoPush and RevenueCat projects, SOS, the
-  uninstalled-app notice (it comes from the push receipts), and the Premium and WhatsApp-link gates on who gets
-  notices (today every account with a contact is checked; `NoticeService.AccountsToCheck` is where they go).
-- The account has no name yet, and the notices need one ("Sua mãe, Maria"). The summary text has to say "no data"
-  while the phone is silent; that is for the message builder in the WhatsApp milestone.
+- The back end has login, refresh, logout, the active device, account deletion, the profile with the name, sync, the
+  heartbeat, the notice rules, the worker, the outbox and WhatsApp (linking, PARAR, the notice templates). Not yet:
+  the ExpoPush and RevenueCat projects, SOS, the uninstalled-app notice (it comes from the push receipts), and the
+  Premium gate on linking and notices (`NoticeService.AccountsToCheck` and `SendNoticeHandler` are where it goes).
+- WhatsApp delivery statuses are only logged when they fail; storing them comes with SOS, whose status the app shows.
+- The six templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
 - CI (`.github/workflows/ci.yml`) covers the back end only: format, build and tests. The app job comes with the Expo
   project. No Dockerfile or deploy workflow yet; take them from TVP when deploying.

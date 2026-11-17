@@ -126,6 +126,30 @@ Diferente do TVP, aqui o outbox é o caminho principal: todo aviso ao familiar p
    Nenhuma mensagem pelo WhatsApp sai sem o Premium ativo.
 5. **Status.** O webhook do WhatsApp grava o status de entrega, e o app o consulta para mostrar o status do SOS.
 
+### Modelos de mensagem
+
+Cada aviso é uma mensagem de modelo, cadastrada no WhatsApp Manager em português (`pt_BR`) com o nome e a ordem de
+valores abaixo, que o código usa. O `{{1}}` é sempre a pessoa, já com a preposição: "da sua mãe, Maria", "do seu pai",
+"de Maria" ou "da pessoa que você acompanha". A Meta recusa modelos que começam ou terminam numa variável, e os
+modelos de utilidade não podem ter conteúdo promocional. O texto pode mudar na aprovação. Se mudar, só a ordem dos
+valores precisa continuar a mesma.
+
+| Nome | Categoria | Texto |
+|---|---|---|
+| `dose_sem_confirmacao` | Utilidade | Aviso do Central Melhor Idade: não recebemos a confirmação da dose das {{2}} {{1}}: {{3}}. Pode ser só falta de internet no celular. |
+| `resumo_diario` | Utilidade | Resumo do dia {{1}} no Central Melhor Idade. Doses registradas: {{2}}. Sem confirmação: {{3}}. Ainda no prazo: {{4}}. Os horários seguem o fuso do celular. |
+| `resumo_sem_dados` | Utilidade | Resumo do dia {{1}} no Central Melhor Idade: o celular está sem contato, então ainda não temos os registros de hoje. |
+| `celular_sem_contato` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} está sem contato há mais de {{2}} horas. Vale a pena ligar para saber se está tudo bem. |
+| `avisos_pausados` | Utilidade | Aviso do Central Melhor Idade: há {{2}} dias não recebemos nenhum registro de dose {{1}}. Pausamos os avisos de dose e o resumo diário, que voltam sozinhos no próximo registro. |
+| `aniversario` | Marketing (provável) | Lembrete do Central Melhor Idade: hoje é aniversário {{1}}. Que tal ligar para dar os parabéns? |
+
+Valores: em `dose_sem_confirmacao`, `{{2}}` é o horário ("08:00") e `{{3}}` são os remédios ("Losartana 50 mg,
+Metformina"). Em `resumo_diario`, são as contagens das 24 horas antes das 20h. Em `celular_sem_contato`, `{{2}}` é o
+limite (12, ou 24 no iPhone). Em `avisos_pausados`, `{{2}}` são os dias sem registro (3).
+
+As respostas ao familiar quando ele envia o código, PARAR ou outra mensagem são texto livre, sem modelo. Elas são
+gratuitas, porque saem dentro das 24 horas que a mensagem dele abriu. Os textos estão em `ContactLinkService`.
+
 ## Aplicativo
 
 - **Expo com build próprio.** React Native com TypeScript, compilado pelo EAS, sem o Expo Go. A parte em JavaScript
@@ -170,6 +194,8 @@ O mais simples que atende um aparelho por conta, sem resolução de conflitos en
 - **Avisos.** O servidor decide a dose sem confirmação a partir dos horários e dos registros sincronizados.
 
 ## Dados
+
+O [diagrama do banco de dados](database.md) mostra as tabelas e os relacionamentos do PostgreSQL.
 
 - O servidor guarda a conta (provedor do login e e-mail), a data de nascimento, o perfil de saúde, os medicamentos
   com horários e dose, o histórico de registros, o contato de confiança (nome e WhatsApp) e os eventos.

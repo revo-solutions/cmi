@@ -2,6 +2,7 @@ namespace RevoSolutions.CMI.Domain.Models;
 
 // A null answer is one the person skipped.
 public record ProfileModel(
+    string? Name,
     DateOnly? BirthDate,
     IReadOnlyList<string> Conditions,
     string? OtherCondition,

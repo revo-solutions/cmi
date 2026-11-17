@@ -33,19 +33,24 @@ public class NoticeTests
     {
         var now = DaytimeNow();
         var (date, time) = LocalMinutesAgo(now, 65);
-        var accountId = await Person(new SyncModel { Medications = [Medication(time)] });
+        var person = await Person(new SyncModel { Medications = [Medication(time), Medication(time) with { Name = "Metformina", Dose = null }] });
 
-        await Check(accountId, now);
-        await Check(accountId, now.AddMinutes(1));
+        await Check(person.AccountId, now);
+        await Check(person.AccountId, now.AddMinutes(1));
 
-        var notice = (await Notices(accountId)).Should().ContainSingle(n => n.Kind == NoticeKind.MissedDose).Subject;
+        var notice = (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.MissedDose).Subject;
         notice.Day.Should().Be(date);
         notice.ScheduledTime.Should().Be(time);
 
         await ProcessOutbox();
+        await ProcessOutbox();
 
-        _factory.Sender.Sent.Should().ContainSingle(s => s.NoticeId == notice.Id);
-        (await Notices(accountId)).Single(n => n.Id == notice.Id).SentAt.Should().NotBeNull();
+        Templates(person).Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Template = "dose_sem_confirmacao",
+            Parameters = new[] { "da sua mãe", $"{time:HH:mm}", "Losartana 50 mg, Metformina" },
+        });
+        (await Notices(person.AccountId)).Single(n => n.Id == notice.Id).SentAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -54,15 +59,15 @@ public class NoticeTests
         var now = DaytimeNow();
         var (date, time) = LocalMinutesAgo(now, 65);
         var taken = Medication(time);
-        var accountId = await Person(new SyncModel
+        var person = await Person(new SyncModel
         {
             Medications = [taken, Medication(time) with { SharedWithContact = false }],
             DoseRecords = [new DoseRecordModel(Guid.NewGuid(), taken.Id, date, time, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow)],
         });
 
-        await Check(accountId, now);
+        await Check(person.AccountId, now);
 
-        (await Notices(accountId)).Should().NotContain(n => n.Kind == NoticeKind.MissedDose);
+        (await Notices(person.AccountId)).Should().NotContain(n => n.Kind == NoticeKind.MissedDose);
     }
 
     [Fact]
@@ -70,11 +75,11 @@ public class NoticeTests
     {
         var later = DaytimeNow().AddHours(7);
         var (_, time) = LocalMinutesAgo(later, 65);
-        var accountId = await Person(new SyncModel { Medications = [Medication(time)] });
+        var person = await Person(new SyncModel { Medications = [Medication(time)] });
 
-        await Check(accountId, later);
+        await Check(person.AccountId, later);
 
-        (await Notices(accountId)).Should().NotContain(n => n.Kind == NoticeKind.MissedDose);
+        (await Notices(person.AccountId)).Should().NotContain(n => n.Kind == NoticeKind.MissedDose);
     }
 
     [Fact]
@@ -82,85 +87,144 @@ public class NoticeTests
     {
         var now = DaytimeNow();
         var times = new[] { 80, 75, 70, 65 }.Select(minutes => LocalMinutesAgo(now, minutes).Time).ToList();
-        var accountId = await Person(new SyncModel { Medications = [Medication([.. times]), Medication(times[0])] });
+        var person = await Person(new SyncModel { Medications = [Medication([.. times]), Medication(times[0])] });
 
-        await Check(accountId, now);
+        await Check(person.AccountId, now);
 
-        (await Notices(accountId)).Where(n => n.Kind == NoticeKind.MissedDose).Select(n => n.ScheduledTime)
+        (await Notices(person.AccountId)).Where(n => n.Kind == NoticeKind.MissedDose).Select(n => n.ScheduledTime)
             .Should().BeEquivalentTo(times.Take(3));
     }
 
     [Fact]
     public async Task A_silent_phone_is_pinged_first_and_the_family_told_once()
     {
-        var accountId = await Person(new SyncModel(), PushToken);
+        var person = await Person(new SyncModel(), PushToken);
         var silent = DateTime.UtcNow.AddHours(12).AddMinutes(1);
 
-        await Check(accountId, silent);
-        (await Notices(accountId)).Should().NotContain(n => n.Kind == NoticeKind.NoContact);
-        (await Account(accountId)).PingSentAt.Should().Be(silent);
+        await Check(person.AccountId, silent);
+        (await Notices(person.AccountId)).Should().NotContain(n => n.Kind == NoticeKind.NoContact);
+        (await Account(person.AccountId)).PingSentAt.Should().BeCloseTo(silent, TimeSpan.FromMilliseconds(1));
 
-        await Check(accountId, silent.AddMinutes(31));
-        await Check(accountId, silent.AddHours(5));
-        (await Notices(accountId)).Should().ContainSingle(n => n.Kind == NoticeKind.NoContact);
+        await Check(person.AccountId, silent.AddMinutes(31));
+        await Check(person.AccountId, silent.AddHours(5));
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.NoContact);
+
+        await ProcessOutbox();
+        Templates(person).Should().ContainSingle().Which.Parameters.Should().Equal("da sua mãe", "12");
     }
 
     [Fact]
     public async Task An_iphone_gets_a_day_before_it_counts_as_silent()
     {
-        var accountId = await Person(new SyncModel(), PushToken, DevicePlatform.Ios);
+        var person = await Person(new SyncModel(), PushToken, DevicePlatform.Ios);
 
-        await Check(accountId, DateTime.UtcNow.AddHours(13));
+        await Check(person.AccountId, DateTime.UtcNow.AddHours(13));
 
-        (await Account(accountId)).PingSentAt.Should().BeNull();
+        (await Account(person.AccountId)).PingSentAt.Should().BeNull();
     }
 
     [Fact]
     public async Task Days_without_a_dose_pause_the_notices_until_the_next_tomei()
     {
         var medication = Medication(new TimeOnly(8, 0));
-        var (accountId, phone) = await PersonWithPhone(new SyncModel { Medications = [medication] });
+        var person = await Person(new SyncModel { Medications = [medication] });
         var evening = LocalToUtc(DateOnly.FromDateTime(Local(DateTime.UtcNow)).AddDays(4), new TimeOnly(20, 30));
 
-        await Check(accountId, evening);
-        (await Notices(accountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Paused)
+        await Check(person.AccountId, evening);
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Paused)
             .And.NotContain(n => n.Kind == NoticeKind.DailySummary);
 
         var tomei = new DoseRecordModel(Guid.NewGuid(), medication.Id, DateOnly.FromDateTime(Local(evening)), medication.Times[0], evening.AddHours(-1), evening.AddHours(-1));
-        (await phone.PostAsJsonAsync("/api/v1/sync", new SyncModel { DoseRecords = [tomei] }, CmiApiFactory.Json))
+        (await person.Phone.PostAsJsonAsync("/api/v1/sync", new SyncModel { DoseRecords = [tomei] }, CmiApiFactory.Json))
             .EnsureSuccessStatusCode();
 
-        await Check(accountId, evening);
-        (await Notices(accountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Paused)
+        await Check(person.AccountId, evening);
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Paused)
             .And.ContainSingle(n => n.Kind == NoticeKind.DailySummary);
     }
 
     [Fact]
     public async Task The_summary_goes_once_from_20h_local()
     {
-        var accountId = await Person(new SyncModel { Medications = [Medication(new TimeOnly(8, 0))] });
+        var person = await Person(new SyncModel { Medications = [Medication(new TimeOnly(8, 0))] });
         var today = DateOnly.FromDateTime(Local(DateTime.UtcNow));
 
-        await Check(accountId, LocalToUtc(today, new TimeOnly(19, 55)));
-        (await Notices(accountId)).Should().NotContain(n => n.Kind == NoticeKind.DailySummary);
+        await Check(person.AccountId, LocalToUtc(today, new TimeOnly(19, 55)));
+        (await Notices(person.AccountId)).Should().NotContain(n => n.Kind == NoticeKind.DailySummary);
 
-        await Check(accountId, LocalToUtc(today, new TimeOnly(20, 5)));
-        await Check(accountId, LocalToUtc(today, new TimeOnly(23, 0)));
-        (await Notices(accountId)).Should().ContainSingle(n => n.Kind == NoticeKind.DailySummary).Which.Day.Should().Be(today);
+        await Check(person.AccountId, LocalToUtc(today, new TimeOnly(20, 5)));
+        await Check(person.AccountId, LocalToUtc(today, new TimeOnly(23, 0)));
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.DailySummary).Which.Day.Should().Be(today);
+    }
+
+    [Fact]
+    public async Task The_summary_counts_the_doses_recorded_unconfirmed_and_still_due()
+    {
+        // A day whose 20:00 is less than the no-contact limit after the setup's contact.
+        var today = DateOnly.FromDateTime(Local(DateTime.UtcNow));
+        var day = Local(DateTime.UtcNow).Hour < 9 ? today.AddDays(-1) : today;
+        var medication = Medication(new TimeOnly(8, 0), new TimeOnly(12, 0), new TimeOnly(19, 30));
+        var tomei = new DoseRecordModel(Guid.NewGuid(), medication.Id, day, new TimeOnly(8, 0), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        var person = await Person(new SyncModel { Medications = [medication, Medication(new TimeOnly(8, 0)) with { Paused = true }], DoseRecords = [tomei] });
+
+        await Check(person.AccountId, LocalToUtc(day, new TimeOnly(20, 5)));
+        await ProcessOutbox();
+
+        Templates(person).Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Template = "resumo_diario",
+            Parameters = new[] { "da sua mãe", "1", "1", "1" },
+        });
+    }
+
+    [Fact]
+    public async Task While_the_phone_is_silent_the_summary_says_there_is_no_data()
+    {
+        var person = await Person(new SyncModel { Medications = [Medication(new TimeOnly(8, 0))] });
+        var later = DateOnly.FromDateTime(Local(DateTime.UtcNow)).AddDays(2);
+
+        await Check(person.AccountId, LocalToUtc(later, new TimeOnly(20, 5)));
+        await ProcessOutbox();
+
+        Templates(person).Should().ContainSingle(m => m.Template == "resumo_sem_dados")
+            .Which.Parameters.Should().Equal("da sua mãe");
     }
 
     [Fact]
     public async Task The_contact_is_reminded_of_the_birthday_in_the_morning()
     {
         var today = DateOnly.FromDateTime(Local(DateTime.UtcNow));
-        var profile = new ProfileModel(new DateOnly(1952, today.Month, today.Day), [], null, null, null, null, DateTimeOffset.UtcNow);
-        var accountId = await Person(new SyncModel { Profile = profile });
+        var profile = new ProfileModel("Maria", new DateOnly(1952, today.Month, today.Day), [], null, null, null, null, DateTimeOffset.UtcNow);
+        var person = await Person(new SyncModel { Profile = profile });
 
-        await Check(accountId, LocalToUtc(today, new TimeOnly(8, 55)));
-        (await Notices(accountId)).Should().NotContain(n => n.Kind == NoticeKind.Birthday);
+        await Check(person.AccountId, LocalToUtc(today, new TimeOnly(8, 55)));
+        (await Notices(person.AccountId)).Should().NotContain(n => n.Kind == NoticeKind.Birthday);
 
-        await Check(accountId, LocalToUtc(today, new TimeOnly(9, 5)));
-        (await Notices(accountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Birthday);
+        await Check(person.AccountId, LocalToUtc(today, new TimeOnly(9, 5)));
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Birthday);
+
+        await ProcessOutbox();
+        Templates(person).Should().ContainSingle(m => m.Template == "aniversario")
+            .Which.Parameters.Should().Equal("da sua mãe, Maria");
+    }
+
+    [Fact]
+    public async Task A_contact_who_never_linked_up_or_answered_parar_gets_nothing()
+    {
+        var now = DaytimeNow();
+        var (_, time) = LocalMinutesAgo(now, 65);
+        var unlinked = await Person(new SyncModel { Medications = [Medication(time)] }, link: false);
+        var stopped = await Person(new SyncModel { Medications = [Medication(time)] });
+
+        // Decided before PARAR, sent after it.
+        await Check(stopped.AccountId, now);
+        (await _factory.ReceiveWhatsApp(stopped.WhatsApp, "Parar")).EnsureSuccessStatusCode();
+        await ProcessOutbox();
+
+        using var scope = _factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<NoticeService>().AccountsToCheck())
+            .Should().NotContain([unlinked.AccountId, stopped.AccountId]);
+        Templates(stopped).Should().BeEmpty();
     }
 
     private static MedicationModel Medication(params TimeOnly[] times) =>
@@ -184,11 +248,12 @@ public class NoticeTests
         return (DateOnly.FromDateTime(local), new TimeOnly(local.Hour, local.Minute));
     }
 
-    private async Task<Guid> Person(SyncModel records, string? pushToken = null, DevicePlatform platform = DevicePlatform.Android) =>
-        (await PersonWithPhone(records, pushToken, platform)).AccountId;
+    private List<SentMessage> Templates(PersonSetup person) =>
+        _factory.WhatsApp.SentTo(person.WhatsApp).Where(m => m.Template is not null).ToList();
 
-    // A signed-in person in São Paulo with a heartbeat, a trusted contact and the given records.
-    private async Task<(Guid AccountId, HttpClient Phone)> PersonWithPhone(SyncModel records, string? pushToken = null, DevicePlatform platform = DevicePlatform.Android)
+    // A signed-in person in São Paulo with a heartbeat, the given records and their mother as the trusted contact,
+    // linked up on WhatsApp unless told otherwise.
+    private async Task<PersonSetup> Person(SyncModel records, string? pushToken = null, DevicePlatform platform = DevicePlatform.Android, bool link = true)
     {
         var subject = CmiApiFactory.NewSubject();
         var phone = await _factory.SignedInClient(subject, Guid.NewGuid());
@@ -199,7 +264,14 @@ public class NoticeTests
         (await phone.PostAsJsonAsync("/api/v1/sync", records with { Contacts = [contact] }, CmiApiFactory.Json))
             .EnsureSuccessStatusCode();
 
-        return ((await _factory.StoredAccount(subject)).Id, phone);
+        var whatsApp = CmiApiFactory.NewWhatsAppNumber();
+        if (link)
+        {
+            var code = (await phone.GetFromJsonAsync<ContactLinkModel>("/api/v1/contact/link", CmiApiFactory.Json))!.Code;
+            (await _factory.ReceiveWhatsApp(whatsApp, $"Quero receber os avisos. Código: {code}")).EnsureSuccessStatusCode();
+        }
+
+        return new PersonSetup((await _factory.StoredAccount(subject)).Id, phone, whatsApp);
     }
 
     private async Task Check(Guid accountId, DateTime now)
@@ -228,4 +300,6 @@ public class NoticeTests
         using var scope = _factory.Services.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<CmiDbContext>().Accounts.AsNoTracking().SingleAsync(a => a.Id == accountId);
     }
+
+    private sealed record PersonSetup(Guid AccountId, HttpClient Phone, string WhatsApp);
 }

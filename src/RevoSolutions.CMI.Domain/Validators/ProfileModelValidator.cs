@@ -8,6 +8,8 @@ public class ProfileModelValidator : AbstractValidator<ProfileModel>
 {
     public ProfileModelValidator()
     {
+        RuleFor(profile => profile.Name).MaximumLength(100);
+
         RuleFor(profile => profile.BirthDate)
             .InclusiveBetween(new DateOnly(1900, 1, 1), DateOnly.FromDateTime(DateTime.UtcNow))
             .When(profile => profile.BirthDate is not null);

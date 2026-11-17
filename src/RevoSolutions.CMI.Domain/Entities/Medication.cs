@@ -38,4 +38,28 @@ public class Medication : SyncedEntityBase
         Deleted = model.Deleted;
         UpdatedAt = model.UpdatedAt.UtcDateTime;
     }
+
+    // The doses scheduled in (from, to], with their instants. A dose before the medication's last change (added, edited,
+    // resumed) never had a reminder, and a wall-clock time skipped by a daylight-saving change never happened.
+    public IEnumerable<(DateOnly Date, TimeOnly Time, DateTime ScheduledAt)> DosesBetween(DateTime from, DateTime to, TimeZoneInfo timeZone)
+    {
+        var last = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(to, timeZone));
+        for (var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(from, timeZone)); date <= last; date = date.AddDays(1))
+        {
+            foreach (var time in Times)
+            {
+                var local = date.ToDateTime(time);
+                if (timeZone.IsInvalidTime(local))
+                {
+                    continue;
+                }
+
+                var scheduledAt = TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
+                if (scheduledAt > from && scheduledAt <= to && scheduledAt >= UpdatedAt)
+                {
+                    yield return (date, time, scheduledAt);
+                }
+            }
+        }
+    }
 }

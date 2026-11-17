@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- For IHttpClientFactory, logging and configuration binding. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RevoSolutions.CMI.Domain\RevoSolutions.CMI.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

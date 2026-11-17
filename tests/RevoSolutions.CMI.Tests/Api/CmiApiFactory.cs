@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
@@ -9,11 +11,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using RevoSolutions.CMI.Anticorruption.WhatsApp;
 using RevoSolutions.CMI.API.Authentication;
 using RevoSolutions.CMI.API.Models;
 using RevoSolutions.CMI.API.Notices;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
-using RevoSolutions.CMI.Domain.Contracts.Messaging;
 using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
 using Testcontainers.PostgreSql;
@@ -36,9 +38,63 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
 
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17").Build();
 
-    public RecordingNoticeSender Sender { get; } = new();
+    public static readonly WhatsAppSettings WhatsAppSettings = new()
+    {
+        PhoneNumberId = "100000000000000",
+        AccessToken = "test-access-token",
+        AppSecret = "test-app-secret",
+        VerifyToken = "test-verify-token",
+    };
+
+    public FakeWhatsApp WhatsApp { get; } = new();
 
     public static string NewSubject() => Guid.NewGuid().ToString("N");
+
+    // A number of its own for each test, so tests never see each other's messages.
+    public static string NewWhatsAppNumber() => $"5511{Random.Shared.Next(100_000_000, 1_000_000_000)}";
+
+    // A message from the family member, as Meta's webhook delivers it, signed with the app secret.
+    public async Task<HttpResponseMessage> ReceiveWhatsApp(string from, string text)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            @object = "whatsapp_business_account",
+            entry = new[]
+            {
+                new
+                {
+                    id = "1",
+                    changes = new[]
+                    {
+                        new
+                        {
+                            field = "messages",
+                            value = new { messages = new[] { new { from, id = $"wamid.{Guid.NewGuid():N}", type = "text", text = new { body = text } } } },
+                        },
+                    },
+                },
+            },
+        });
+
+        return await PostWhatsApp(body, Sign(body));
+    }
+
+    public async Task<HttpResponseMessage> PostWhatsApp(string body, string? signature)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/webhooks/whatsapp")
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json"),
+        };
+        if (signature is not null)
+        {
+            request.Headers.Add("X-Hub-Signature-256", signature);
+        }
+
+        return await CreateClient().SendAsync(request);
+    }
+
+    public static string Sign(string body) =>
+        "sha256=" + Convert.ToHexStringLower(HMACSHA256.HashData(Encoding.UTF8.GetBytes(WhatsAppSettings.AppSecret), Encoding.UTF8.GetBytes(body)));
 
     public async Task InitializeAsync()
     {
@@ -97,8 +153,9 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
                 services.Remove(worker);
             }
 
-            services.RemoveAll<INoticeSender>();
-            services.AddSingleton<INoticeSender>(Sender);
+            services.RemoveAll<WhatsAppSettings>();
+            services.AddSingleton(WhatsAppSettings);
+            services.AddHttpClient<WhatsAppClient>().ConfigurePrimaryHttpMessageHandler(() => WhatsApp);
         });
     }
 

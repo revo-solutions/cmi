@@ -1,3 +1,5 @@
+using RevoSolutions.CMI.Domain.Enumerators;
+
 namespace RevoSolutions.CMI.Domain.Models;
 
 // The notice rules' numbers (docs/escopo.md, "Celular sem conexão e abandono do app"). These defaults are the only place
@@ -23,4 +25,6 @@ public class NoticeSettings
     public TimeSpan PingWait { get; set; } = TimeSpan.FromMinutes(30);
 
     public int AbandonmentDays { get; set; } = 3;
+
+    public TimeSpan NoContactLimit(DevicePlatform? platform) => platform == DevicePlatform.Ios ? NoContactIos : NoContactAndroid;
 }
