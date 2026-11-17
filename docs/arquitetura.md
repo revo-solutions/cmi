@@ -103,7 +103,7 @@ flowchart TD
 | `Domain` | Entidades (conta, perfil, medicamentos, registros, contato), serviços de domínio, as regras dos avisos (prazo, contato recente, teto diário, abandono), validators, mappers e eventos; os contratos dos sistemas externos que ele chama (`Contracts/Messaging`, `Contracts/Push`) |
 | `Data.PostgreSql` | `CmiDbContext`, repositório genérico, Unit of Work, outbox e o interceptor que grava os eventos, refresh tokens |
 | `Anticorruption.WhatsApp` | Cloud API da Meta: envio das mensagens de modelo e tradução do webhook (vínculo, PARAR, status de entrega) |
-| `Anticorruption.ExpoPush` | Envio do ping ao aparelho e leitura dos recibos, que revelam a desinstalação do app |
+| `Anticorruption.ExpoPush` | Envio do ping silencioso ao aparelho e leitura dos recibos, que dizem quando o push não chega mais ao app (desinstalado ou com as notificações desligadas) |
 | `Anticorruption.RevenueCat` | Webhook de assinaturas: a cada evento, lê o cliente na API do RevenueCat e grava até quando vale o Premium (`Account.PremiumUntil`) |
 | `API` | Composição: endpoints do app e da sincronização, webhooks do WhatsApp e do RevenueCat, login social (validação dos tokens do Google e da Apple), worker, processador do outbox, telemetria |
 | `mobile/` | Aplicativo Expo. Fica fora da solução .NET, como o `web/` do TVP |
@@ -140,6 +140,7 @@ valores precisa continuar a mesma.
 | `resumo_diario` | Utilidade | Resumo do dia {{1}} no Central Melhor Idade. Doses registradas: {{2}}. Sem confirmação: {{3}}. Ainda no prazo: {{4}}. Os horários seguem o fuso do celular. |
 | `resumo_sem_dados` | Utilidade | Resumo do dia {{1}} no Central Melhor Idade: o celular está sem contato, então ainda não temos os registros de hoje. |
 | `celular_sem_contato` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} está sem contato há mais de {{2}} horas. Vale a pena ligar para saber se está tudo bem. |
+| `app_desinstalado` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} parou de receber as notificações do app, que pode ter sido desinstalado ou ficado com as notificações desligadas. Assim os lembretes de remédio também param. Vale a pena ligar para ajudar. |
 | `avisos_pausados` | Utilidade | Aviso do Central Melhor Idade: há {{2}} dias não recebemos nenhum registro de dose {{1}}. Pausamos os avisos de dose e o resumo diário, que voltam sozinhos no próximo registro. |
 | `aniversario` | Marketing (provável) | Lembrete do Central Melhor Idade: hoje é aniversário {{1}}. Que tal ligar para dar os parabéns? |
 

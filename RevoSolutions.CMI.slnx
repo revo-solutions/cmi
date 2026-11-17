@@ -4,6 +4,7 @@
     <Project Path="src/RevoSolutions.CMI.Domain/RevoSolutions.CMI.Domain.csproj" />
   </Folder>
   <Folder Name="/Infrastructure/">
+    <Project Path="src/RevoSolutions.CMI.Anticorruption.ExpoPush/RevoSolutions.CMI.Anticorruption.ExpoPush.csproj" />
     <Project Path="src/RevoSolutions.CMI.Anticorruption.RevenueCat/RevoSolutions.CMI.Anticorruption.RevenueCat.csproj" />
     <Project Path="src/RevoSolutions.CMI.Anticorruption.WhatsApp/RevoSolutions.CMI.Anticorruption.WhatsApp.csproj" />
     <Project Path="src/RevoSolutions.CMI.Data.PostgreSql/RevoSolutions.CMI.Data.PostgreSql.csproj" />

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RevoSolutions.CMI.Anticorruption.ExpoPush;
 using RevoSolutions.CMI.Anticorruption.RevenueCat;
 using RevoSolutions.CMI.Anticorruption.WhatsApp;
 using RevoSolutions.CMI.API.Notices;
@@ -44,8 +45,10 @@ public static class DependencyInjection
         services.AddSingleton(configuration.GetSection("Notices").Get<NoticeSettings>() ?? new NoticeSettings());
         services.AddScoped<NoticeService>();
         services.AddScoped<IDomainEventHandler<NoticeCreatedDomainEvent>, SendNoticeHandler>();
+        services.AddScoped<IDomainEventHandler<DevicePingRequestedDomainEvent>, SendPingHandler>();
         services.AddScoped<NoticeMessageBuilder>();
         services.AddWhatsApp(configuration);
+        services.AddExpoPush(configuration);
         services.AddRevenueCat(configuration);
         services.AddHostedService<NoticeWorker>();
         services.AddHostedService<OutboxWorker>();

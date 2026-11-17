@@ -32,6 +32,8 @@ erDiagram
         timestamptz LastSeenAt "opcional"
         timestamptz LastTakenAt "opcional"
         timestamptz PingSentAt "opcional"
+        varchar(100) PingTicketId "ticket do ping no Expo, opcional"
+        timestamptz PushUnregisteredAt "push não chega mais ao app, opcional"
         timestamptz PremiumUntil "fim do Premium, pelo RevenueCat, opcional"
         timestamptz CreatedDate
     }

@@ -6,9 +6,9 @@ installs the app. Single-maintainer project. React Native + Expo in `mobile/`; a
 on the same simplified DDD modular monolith as RevoSolutions.TVP. What the MVP includes and what comes after it:
 `docs/escopo.md`. The stack and the reasons behind it: `docs/arquitetura.md`.
 
-The back-end solution is `RevoSolutions.CMI.slnx`, with `Anticorruption.WhatsApp` and `Anticorruption.RevenueCat`;
-the Expo app starts in `mobile/`. Create `Anticorruption.ExpoPush` as the work needs it, following this file, and
-update it when a decision here changes or a new one is made.
+The back-end solution is `RevoSolutions.CMI.slnx`, with `Anticorruption.WhatsApp`, `Anticorruption.RevenueCat` and
+`Anticorruption.ExpoPush`; the Expo app starts in `mobile/`. Build what comes next following this file, and update it
+when a decision here changes or a new one is made.
 
 ## Guiding rule: less is more
 
@@ -91,6 +91,9 @@ starting value: keep each one in a single setting.
   `expo-background-task` (the outgoing queue and the heartbeat), behind one TypeScript interface. Prefer Expo modules
   over bare native code; own Kotlin or Swift code goes behind that same interface, and only when tests on real devices
   prove the gain. Leaving the managed workflow needs a reason written here.
+- The server's ping (see "Push") is a data-only push, `{ "type": "ping" }` with no title or body, so nothing shows.
+  The app answers it with a heartbeat from a background notification task (`expo-task-manager`; on iOS the
+  `expo-notifications` plugin's `enableBackgroundRemoteNotifications`).
 - SQLite (`expo-sqlite`) on the device keeps the app working offline. Every change is synced to the server through
   the outgoing queue (see `docs/arquitetura.md`, "Sincronização"): records get a UUID and an updated-at on the
   device, the last write wins, and only one device per account is active.
@@ -121,7 +124,7 @@ starting value: keep each one in a single setting.
   migrations.
 - `Anticorruption.*` — one project per external system, translating it into domain terms: `WhatsApp` (Meta Cloud
   API, called directly with no intermediary: template sends and the webhook's link code, PARAR and delivery
-  status), `ExpoPush` (the ping and its receipts, which reveal an uninstalled app) and `RevenueCat` (the subscription
+  status), `ExpoPush` (the ping and its receipts, which tell when the push no longer reaches the app) and `RevenueCat` (the subscription
   webhook, translated into `Account.PremiumUntil`).
 - `API` — controllers, sync endpoints, the WhatsApp and RevenueCat webhooks, social login, the per-minute worker and the outbox processor
   (hosted services), DI composition. Thin; delegates to domain services.
@@ -181,13 +184,15 @@ How it is built:
   (`Domain/Contracts/Messaging`) and sets `SentAt`, which stops a retried delivery from paying twice. The message is
   built when it is sent, from the current data, by `NoticeMessageBuilder`: a `NoticeTemplate` and its values, the
   person always first in the "of" form ("da sua mãe, Maria"). A missed dose recorded in the meantime sends nothing.
-- The ping is `Account.RequestPing`, which raises `DevicePingRequestedDomainEvent`; nothing handles it until
-  `Anticorruption.ExpoPush`, so the no-contact notice simply comes `PingWait` after the limit.
+- The ping is `Account.RequestPing`, which raises `DevicePingRequestedDomainEvent`; `SendPingHandler` pushes it (see
+  "Push"). `PingWait` after the ping, the silence is decided once, keyed by the last contact: `Uninstalled` when Expo
+  says the push no longer reaches the app, `NoContact` otherwise.
 - `NoticeWorker` (every minute, one scope per account) and `OutboxWorker` (every 5 seconds) are the hosted services.
   Tests remove both and call `NoticeService` and `OutboxProcessor` themselves.
 - Only Premium accounts whose contact linked up on WhatsApp and didn't answer PARAR are checked (`AccountsToCheck`),
   and only medications with `SharedWithContact` (not paused, not deleted) count. The handler checks Premium and the
-  contact again before sending; a notice decided before Premium ended is never sent. Abandonment counts from `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
+  contact again before sending; a notice decided before Premium ended is never sent. Abandonment counts from
+  `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
 - A missed dose is notified only while its deadline is under an hour old, so a worker outage or a contact added
   later doesn't send stale notices, and only for doses scheduled after the medication's last change.
 
@@ -226,6 +231,20 @@ phone numbers or message text.
   TestFlight and the stores' review can test Premium.
 - A failing call returns an error, and RevenueCat retries for about 80 minutes.
 - Tests replace RevenueCat with `FakeRevenueCat`, and `CmiApiFactory.SetPremium` plays a store change.
+
+### Push
+
+`Anticorruption.ExpoPush` implements `IPushSender` (`Domain/Contracts/Push`) over Expo's push service, which hands
+the push to Google and Apple. The optional `ExpoPush:AccessToken` is needed only once "enhanced push security" is on
+in Expo's dashboard.
+
+- The ping goes with high priority (to wake a sleeping Android phone) and `contentAvailable` (to wake the app on
+  iOS). Its ticket is kept in `Account.PingTicketId`.
+- Expo's `DeviceNotRegistered`, in the ticket or later in the receipt, sets `Account.PushUnregisteredAt` and drops the
+  push token, which Expo says to stop using. It means the push no longer reaches the app: uninstalled, or
+  notifications turned off, which stops the reminders too. It can come late, so it is only read once, when the
+  silence is decided; until then, or without it, the family hears `NoContact`. The next contact clears it.
+- Tests replace Expo with `FakeExpoPush`, and `CmiApiFactory.NewPushToken` gives each test its own token.
 
 ### API contract
 
@@ -283,13 +302,12 @@ npx tsc --noEmit
 What the MVP includes and what comes after it: `docs/escopo.md`.
 
 - The back end has login, refresh, logout, the active device, account deletion, the profile with the name, sync, the
-  heartbeat, the notice rules, the worker, the outbox, WhatsApp (linking, PARAR, the notice templates) and Premium
-  from RevenueCat, which gates the notices. Not yet: the ExpoPush project, SOS, the uninstalled-app notice (it comes
-  from the push receipts).
+  heartbeat, the notice rules, the worker, the outbox, WhatsApp (linking, PARAR, the notice templates), Premium
+  from RevenueCat, which gates the notices, and the push ping with the uninstalled-app notice. Not yet: SOS.
 - RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
   its Authorization header.
 - WhatsApp delivery statuses are only logged when they fail; storing them comes with SOS, whose status the app shows.
-- The six templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
+- The seven templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). No Dockerfile
   or deploy workflow yet; take them from TVP when deploying.

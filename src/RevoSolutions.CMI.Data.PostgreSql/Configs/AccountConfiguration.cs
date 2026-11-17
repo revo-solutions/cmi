@@ -20,6 +20,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.Platform).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.TimeZone).HasMaxLength(100);
         builder.Property(a => a.PushToken).HasMaxLength(200);
+        builder.Property(a => a.PingTicketId).HasMaxLength(100);
 
         builder.HasIndex(a => new { a.Provider, a.Subject }).IsUnique();
     }

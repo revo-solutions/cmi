@@ -16,8 +16,6 @@ namespace RevoSolutions.CMI.Tests.Api;
 [Collection(ApiCollection.Name)]
 public class NoticeTests
 {
-    private const string PushToken = "ExponentPushToken[abc123]";
-
     private static readonly TimeZoneInfo SaoPaulo = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     private static readonly DateTimeOffset LongAgo = DateTimeOffset.UtcNow.AddDays(-30);
 
@@ -98,12 +96,15 @@ public class NoticeTests
     [Fact]
     public async Task A_silent_phone_is_pinged_first_and_the_family_told_once()
     {
-        var person = await Person(new SyncModel(), PushToken);
+        var pushToken = CmiApiFactory.NewPushToken();
+        var person = await Person(new SyncModel(), pushToken);
         var silent = DateTime.UtcNow.AddHours(12).AddMinutes(1);
 
         await Check(person.AccountId, silent);
+        await ProcessOutbox();
         (await Notices(person.AccountId)).Should().NotContain(n => n.Kind == NoticeKind.NoContact);
         (await Account(person.AccountId)).PingSentAt.Should().BeCloseTo(silent, TimeSpan.FromMilliseconds(1));
+        _factory.ExpoPush.SentTo(pushToken).Should().ContainSingle().Which.Should().Be(new SentPush(pushToken, "ping", Silent: true));
 
         await Check(person.AccountId, silent.AddMinutes(31));
         await Check(person.AccountId, silent.AddHours(5));
@@ -114,9 +115,46 @@ public class NoticeTests
     }
 
     [Fact]
+    public async Task When_the_receipt_says_the_push_no_longer_reaches_the_app_the_family_is_told_that_once()
+    {
+        var pushToken = CmiApiFactory.NewPushToken();
+        _factory.ExpoPush.Unregister(pushToken, onSend: false);
+        var person = await Person(new SyncModel(), pushToken);
+        var silent = DateTime.UtcNow.AddHours(12).AddMinutes(1);
+
+        await Check(person.AccountId, silent);
+        await ProcessOutbox();
+        await Check(person.AccountId, silent.AddMinutes(31));
+        await Check(person.AccountId, silent.AddHours(5));
+
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Uninstalled)
+            .And.NotContain(n => n.Kind == NoticeKind.NoContact);
+        (await Account(person.AccountId)).PushToken.Should().BeNull();
+
+        await ProcessOutbox();
+        Templates(person).Should().ContainSingle().Which.Should().BeEquivalentTo(new { Template = "app_desinstalado", Parameters = new[] { "da sua mãe" } });
+    }
+
+    [Fact]
+    public async Task A_token_expo_already_knows_is_gone_is_found_out_when_the_ping_is_sent()
+    {
+        var pushToken = CmiApiFactory.NewPushToken();
+        _factory.ExpoPush.Unregister(pushToken, onSend: true);
+        var person = await Person(new SyncModel(), pushToken);
+        var silent = DateTime.UtcNow.AddHours(12).AddMinutes(1);
+
+        await Check(person.AccountId, silent);
+        await ProcessOutbox();
+        (await Account(person.AccountId)).Should().BeEquivalentTo(new { PushToken = (string?)null, PingTicketId = (string?)null });
+
+        await Check(person.AccountId, silent.AddMinutes(31));
+        (await Notices(person.AccountId)).Should().ContainSingle(n => n.Kind == NoticeKind.Uninstalled);
+    }
+
+    [Fact]
     public async Task An_iphone_gets_a_day_before_it_counts_as_silent()
     {
-        var person = await Person(new SyncModel(), PushToken, DevicePlatform.Ios);
+        var person = await Person(new SyncModel(), CmiApiFactory.NewPushToken(), DevicePlatform.Ios);
 
         await Check(person.AccountId, DateTime.UtcNow.AddHours(13));
 

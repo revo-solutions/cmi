@@ -21,6 +21,7 @@ public sealed class WhatsAppNoticeSender : INoticeSender
         NoticeTemplate.DailySummary => "resumo_diario",
         NoticeTemplate.DailySummaryNoData => "resumo_sem_dados",
         NoticeTemplate.NoContact => "celular_sem_contato",
+        NoticeTemplate.Uninstalled => "app_desinstalado",
         NoticeTemplate.Paused => "avisos_pausados",
         NoticeTemplate.Birthday => "aniversario",
         _ => throw new ArgumentOutOfRangeException(nameof(template), template, "No WhatsApp template for it."),

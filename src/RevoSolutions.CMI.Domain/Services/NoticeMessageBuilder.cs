@@ -63,6 +63,7 @@ public class NoticeMessageBuilder
             NoticeKind.MissedDose => await MissedDose(notice, subject),
             NoticeKind.DailySummary => await Summary(account, notice.Day, timeZone, subject),
             NoticeKind.NoContact => new(NoticeTemplate.NoContact, [subject, Number(_settings.NoContactLimit(account.Platform).TotalHours)]),
+            NoticeKind.Uninstalled => new(NoticeTemplate.Uninstalled, [subject]),
             NoticeKind.Paused => new(NoticeTemplate.Paused, [subject, Number(_settings.AbandonmentDays)]),
             NoticeKind.Birthday => new(NoticeTemplate.Birthday, [subject]),
             _ => throw new ArgumentOutOfRangeException(nameof(notice), notice.Kind, "Unknown notice kind."),

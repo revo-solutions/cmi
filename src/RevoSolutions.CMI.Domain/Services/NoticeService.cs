@@ -1,3 +1,4 @@
+using RevoSolutions.CMI.Domain.Contracts.Push;
 using RevoSolutions.CMI.Domain.Core.Contracts.Repositories;
 using RevoSolutions.CMI.Domain.Core.Contracts.UnitOfWork;
 using RevoSolutions.CMI.Domain.Entities;
@@ -21,6 +22,7 @@ public class NoticeService
     private readonly IRepository<Notice> _notices;
     private readonly IUnitOfWork _unitOfWork;
     private readonly NoticeSettings _settings;
+    private readonly IPushSender _push;
 
     public NoticeService(
         IRepository<Account> accounts,
@@ -29,8 +31,10 @@ public class NoticeService
         IRepository<DoseRecord> doseRecords,
         IRepository<Notice> notices,
         IUnitOfWork unitOfWork,
-        NoticeSettings settings)
+        NoticeSettings settings,
+        IPushSender push)
     {
+        _push = push;
         _accounts = accounts;
         _contacts = contacts;
         _medications = medications;
@@ -94,7 +98,8 @@ public class NoticeService
     }
 
     // Silent past the limit: ping first, and tell the family once if the ping brings no heartbeat. The key is the last
-    // contact, so the notice repeats only after the phone has been back in touch.
+    // contact, so the notice repeats only after the phone has been back in touch. When Expo says the push no longer
+    // reaches the app, which may take longer than the wait, the family hears that instead.
     private async Task CheckContact(Account account, DateTime now, DateOnly today)
     {
         var lastSeen = account.LastSeenAt!.Value;
@@ -115,7 +120,19 @@ public class NoticeService
             return;
         }
 
-        await Notify(account, NoticeKind.NoContact, $"{lastSeen:O}", today);
+        // One notice per silence, so the receipt is read only until it is decided.
+        var silence = $"{lastSeen:O}";
+        if (await IsDecided(account, NoticeKind.NoContact, silence) || await IsDecided(account, NoticeKind.Uninstalled, silence))
+        {
+            return;
+        }
+
+        if (account.PingTicketId is { } ticketId && await _push.IsUnregistered(ticketId))
+        {
+            account.MarkPushUnregistered(now);
+        }
+
+        await Notify(account, account.PushUnregisteredAt is null ? NoticeKind.NoContact : NoticeKind.Uninstalled, silence, today);
     }
 
     // A dose is unconfirmed once its deadline passes with no "Tomei". The family hears only if the phone was in touch
@@ -158,15 +175,22 @@ public class NoticeService
 
     private async Task<bool> Notify(Account account, NoticeKind kind, string discriminator, DateOnly day, TimeOnly? scheduledTime = null)
     {
-        var key = $"{account.Id}:{kind}:{discriminator}";
-        if (await _notices.FirstOrDefault(n => n.Key == key) is not null)
+        if (await IsDecided(account, kind, discriminator))
         {
             return false;
         }
 
-        await _notices.Add(Notice.Create(account.Id, kind, key, day, scheduledTime));
+        await _notices.Add(Notice.Create(account.Id, kind, Key(account, kind, discriminator), day, scheduledTime));
         return true;
     }
+
+    private async Task<bool> IsDecided(Account account, NoticeKind kind, string discriminator)
+    {
+        var key = Key(account, kind, discriminator);
+        return await _notices.FirstOrDefault(n => n.Key == key) is not null;
+    }
+
+    private static string Key(Account account, NoticeKind kind, string discriminator) => $"{account.Id}:{kind}:{discriminator}";
 
     // Someone born on 29 February is remembered on the 28th in other years.
     private static bool IsBirthday(DateOnly birthDate, DateOnly today) =>

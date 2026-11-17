@@ -31,6 +31,13 @@ public class Account : EntityBase
     // When the server last pinged the device for going quiet; a ping later than LastSeenAt is still unanswered.
     public DateTime? PingSentAt { get; set; }
 
+    // The last ping's ticket at Expo, whose receipt says whether the push still reaches the app.
+    public string? PingTicketId { get; set; }
+
+    // When Expo said the push token no longer reaches the app: uninstalled, or notifications turned off. The next
+    // contact clears it.
+    public DateTime? PushUnregisteredAt { get; set; }
+
     // The latest "Tomei" received, for the abandonment pause.
     public DateTime? LastTakenAt { get; set; }
 
@@ -79,7 +86,11 @@ public class Account : EntityBase
         MarkSeen();
     }
 
-    public void MarkSeen() => LastSeenAt = DateTime.UtcNow;
+    public void MarkSeen()
+    {
+        LastSeenAt = DateTime.UtcNow;
+        PushUnregisteredAt = null;
+    }
 
     public void RecordTaken(DateTimeOffset takenAt)
     {
@@ -93,7 +104,15 @@ public class Account : EntityBase
     public void RequestPing(DateTime now)
     {
         PingSentAt = now;
+        PingTicketId = null;
         AddDomainEvent(new DevicePingRequestedDomainEvent(Id, now));
+    }
+
+    // Expo says to stop sending to such a token; the app sends a new one with its next heartbeat.
+    public void MarkPushUnregistered(DateTime now)
+    {
+        PushUnregisteredAt = now;
+        PushToken = null;
     }
 
     public void RecordHeartbeat(HeartbeatModel heartbeat)

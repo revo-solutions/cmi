@@ -11,12 +11,14 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using RevoSolutions.CMI.Anticorruption.ExpoPush;
 using RevoSolutions.CMI.Anticorruption.RevenueCat;
 using RevoSolutions.CMI.Anticorruption.WhatsApp;
 using RevoSolutions.CMI.API.Authentication;
 using RevoSolutions.CMI.API.Models;
 using RevoSolutions.CMI.API.Notices;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
+using RevoSolutions.CMI.Domain.Contracts.Push;
 using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
 using Testcontainers.PostgreSql;
@@ -56,6 +58,11 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
     public FakeWhatsApp WhatsApp { get; } = new();
 
     public FakeRevenueCat RevenueCat { get; } = new();
+
+    public FakeExpoPush ExpoPush { get; } = new();
+
+    // A token of its own for each test, so tests never see each other's pushes.
+    public static string NewPushToken() => $"ExponentPushToken[{Guid.NewGuid():N}]";
 
     public static string NewSubject() => Guid.NewGuid().ToString("N");
 
@@ -198,6 +205,8 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
             services.RemoveAll<RevenueCatSettings>();
             services.AddSingleton(RevenueCatSettings);
             services.AddHttpClient<RevenueCatClient>().ConfigurePrimaryHttpMessageHandler(() => RevenueCat);
+
+            services.AddHttpClient<IPushSender, ExpoPushClient>().ConfigurePrimaryHttpMessageHandler(() => ExpoPush);
         });
     }
 

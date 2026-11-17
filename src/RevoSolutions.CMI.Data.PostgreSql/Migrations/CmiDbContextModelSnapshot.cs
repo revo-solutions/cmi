@@ -140,6 +140,10 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<DateTime?>("PingSentAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PingTicketId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("Platform")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -158,6 +162,9 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<string>("PushToken")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("PushUnregisteredAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Subject")
                         .IsRequired()

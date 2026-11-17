@@ -15,6 +15,7 @@ public enum NoticeTemplate
     DailySummary,
     DailySummaryNoData,
     NoContact,
+    Uninstalled,
     Paused,
     Birthday,
 }
