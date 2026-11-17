@@ -309,6 +309,15 @@ After a model change: `dotnet ef migrations add <Name> --project src/RevoSolutio
 --startup-project src/RevoSolutions.CMI.API --output-dir Migrations`. `dotnet tool restore` installs `dotnet-ef`.
 Real logins need `SocialLogin:GoogleClientIds` / `SocialLogin:AppleClientIds` in user secrets; the tests don't.
 
+The API's image (`src/RevoSolutions.CMI.API/Dockerfile`, built from the repository root, listening on 8080) is what
+gets deployed. The `image` workflow, run by hand, publishes it to `ghcr.io/<repo>/api` with the commit's sha and
+`latest`. Add `GSS Encryption Mode=Disable` to the connection string the container gets: the image has no Kerberos,
+and Npgsql logs an error at every connection otherwise.
+
+```bash
+docker build -f src/RevoSolutions.CMI.API/Dockerfile -t cmi-api:local .
+```
+
 Mobile, from `mobile/`:
 
 ```bash
@@ -326,13 +335,15 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
   heartbeat, the notice rules, the worker, the outbox, WhatsApp (linking, PARAR, the notice templates), Premium
   from RevenueCat, which gates the notices, the push ping with the uninstalled-app notice, and SOS with its delivery
   status. Not yet: the web page to ask for account deletion (Google requires it), the terms and the privacy policy,
-  and the deploy.
+  and the hosting.
 - RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
   its Authorization header.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
-- CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). No Dockerfile
-  or deploy workflow yet; take them from TVP when deploying.
+- CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). The API
+  image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum of one replica, as in
+  TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The
+  rollout step, applying the migrations and the daily backup come with that choice.
 - The Expo app has only a local reminder test. Validate it on Android and a real iPhone with a bundled preview build
   before building the medication screens. See `mobile/README.md`.
 
