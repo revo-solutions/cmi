@@ -81,6 +81,21 @@ app a carrega de `@expo-google-fonts/atkinson-hyperlegible-next`.
 - Área de toque mínima de 56 dp, 64 dp ou mais nas ações principais e 16 dp entre botões.
 - Ícones Lucide (`lucide-react-native`) com traço 2,5 e 28 dp, sempre ao lado de uma palavra.
 
+## Telas de exemplo
+
+Referência visual exportada do canvas em `telas/`, a 2× de um celular de 390 × 844 pt. Não são as telas do app; apague
+cada imagem quando a tela de verdade existir.
+
+| Entrada | Hoje | Hoje com a fonte em 150% |
+| --- | --- | --- |
+| ![Entrada](telas/entrada.png) | ![Hoje](telas/hoje.png) | ![Hoje com a fonte em 150%](telas/hoje-fonte-150.png) |
+
+Na tela com a fonte em 150%, a linha tracejada marca o fim da tela; o resto aparece rolando, só na vertical.
+
+| Hora do remédio | SOS enviado | SOS sem internet | SOS com falha |
+| --- | --- | --- | --- |
+| ![Hora do remédio](telas/lembrete.png) | ![SOS enviado](telas/sos-enviado.png) | ![SOS sem internet](telas/sos-sem-internet.png) | ![SOS com falha](telas/sos-falhou.png) |
+
 ## Voz
 
 Frases curtas, tratando a pessoa por “você”. Os avisos dizem o que aconteceu e nunca culpam: “não recebemos a
