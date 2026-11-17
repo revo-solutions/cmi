@@ -4,8 +4,6 @@ A tela agenda uma notificação local para daqui a um minuto. **Tomei** grava no
 
 A tela usa o logo de `docs/marca/`, a paleta da marca e a fonte Atkinson Hyperlegible Next.
 
-O [plano de implementação do app](../docs/plano-app.md) começa pela validação deste roteiro em aparelhos reais.
-
 ## Build
 
 Execute em `mobile/`. O perfil `development` usa o cliente de desenvolvimento e o Metro. Use o perfil `preview` para testar com o JavaScript incluído no aplicativo, inclusive no modo avião e com o app fechado.
