@@ -100,11 +100,11 @@ flowchart TD
 | Projeto | Responsabilidade |
 |---|---|
 | `Domain.Core` | Contratos: `IRepository`, `IUnitOfWork`, `IDomainEvent` e handler, exceções de domínio |
-| `Domain` | Entidades (conta, perfil, medicamentos, registros, contato), serviços de domínio, as regras dos avisos (prazo, contato recente, teto diário, abandono), validators, mappers e eventos; os contratos dos sistemas externos (`Contracts/Messaging`, `Contracts/Push`, `Contracts/Billing`) |
+| `Domain` | Entidades (conta, perfil, medicamentos, registros, contato), serviços de domínio, as regras dos avisos (prazo, contato recente, teto diário, abandono), validators, mappers e eventos; os contratos dos sistemas externos que ele chama (`Contracts/Messaging`, `Contracts/Push`) |
 | `Data.PostgreSql` | `CmiDbContext`, repositório genérico, Unit of Work, outbox e o interceptor que grava os eventos, refresh tokens |
 | `Anticorruption.WhatsApp` | Cloud API da Meta: envio das mensagens de modelo e tradução do webhook (vínculo, PARAR, status de entrega) |
 | `Anticorruption.ExpoPush` | Envio do ping ao aparelho e leitura dos recibos, que revelam a desinstalação do app |
-| `Anticorruption.RevenueCat` | Tradução do webhook de assinaturas (compra, renovação, cancelamento, expiração) para o estado do Premium |
+| `Anticorruption.RevenueCat` | Webhook de assinaturas: a cada evento, lê o cliente na API do RevenueCat e grava até quando vale o Premium (`Account.PremiumUntil`) |
 | `API` | Composição: endpoints do app e da sincronização, webhooks do WhatsApp e do RevenueCat, login social (validação dos tokens do Google e da Apple), worker, processador do outbox, telemetria |
 | `mobile/` | Aplicativo Expo. Fica fora da solução .NET, como o `web/` do TVP |
 

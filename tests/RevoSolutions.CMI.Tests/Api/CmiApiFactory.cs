@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using RevoSolutions.CMI.Anticorruption.RevenueCat;
 using RevoSolutions.CMI.Anticorruption.WhatsApp;
 using RevoSolutions.CMI.API.Authentication;
 using RevoSolutions.CMI.API.Models;
@@ -46,7 +47,15 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
         VerifyToken = "test-verify-token",
     };
 
+    public static readonly RevenueCatSettings RevenueCatSettings = new()
+    {
+        ApiKey = "test-api-key",
+        WebhookAuthorization = "test-webhook-authorization",
+    };
+
     public FakeWhatsApp WhatsApp { get; } = new();
+
+    public FakeRevenueCat RevenueCat { get; } = new();
 
     public static string NewSubject() => Guid.NewGuid().ToString("N");
 
@@ -89,6 +98,35 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
         {
             request.Headers.Add("X-Hub-Signature-256", signature);
         }
+
+        return await CreateClient().SendAsync(request);
+    }
+
+    // The store reports a change: RevenueCat now holds Premium until `until` (none if null) and calls the webhook.
+    public async Task SetPremium(Guid accountId, DateTimeOffset? until, string type = "INITIAL_PURCHASE")
+    {
+        if (until is null)
+        {
+            RevenueCat.Remove(accountId);
+        }
+        else
+        {
+            RevenueCat.Set(accountId, until);
+        }
+
+        (await PostRevenueCat(RevenueCatEvent(type, accountId))).EnsureSuccessStatusCode();
+    }
+
+    public static object RevenueCatEvent(string type, Guid accountId) =>
+        new { type, app_user_id = $"{accountId}", original_app_user_id = $"{accountId}", aliases = new[] { $"{accountId}" } };
+
+    public async Task<HttpResponseMessage> PostRevenueCat(object @event, string? authorization = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/webhooks/revenuecat")
+        {
+            Content = JsonContent.Create(new { api_version = "1.0", @event }),
+        };
+        request.Headers.TryAddWithoutValidation("Authorization", authorization ?? RevenueCatSettings.WebhookAuthorization);
 
         return await CreateClient().SendAsync(request);
     }
@@ -156,6 +194,10 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
             services.RemoveAll<WhatsAppSettings>();
             services.AddSingleton(WhatsAppSettings);
             services.AddHttpClient<WhatsAppClient>().ConfigurePrimaryHttpMessageHandler(() => WhatsApp);
+
+            services.RemoveAll<RevenueCatSettings>();
+            services.AddSingleton(RevenueCatSettings);
+            services.AddHttpClient<RevenueCatClient>().ConfigurePrimaryHttpMessageHandler(() => RevenueCat);
         });
     }
 

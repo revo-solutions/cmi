@@ -32,6 +32,7 @@ erDiagram
         timestamptz LastSeenAt "opcional"
         timestamptz LastTakenAt "opcional"
         timestamptz PingSentAt "opcional"
+        timestamptz PremiumUntil "fim do Premium, pelo RevenueCat, opcional"
         timestamptz CreatedDate
     }
 

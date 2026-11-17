@@ -113,13 +113,13 @@ starting value: keep each one in a single setting.
 
 - `Domain.Core` — contracts only (`IRepository`, `IUnitOfWork`, `IDomainEvent` and its handler, exceptions).
 - `Domain` — entities (account, profile, medications, dose records, contact), domain services, the notice rules, validators, Mapperly mappers, domain events. Owns the
-  contracts of the external systems (`Contracts/Messaging`, `Contracts/Push`, `Contracts/Billing`). No infrastructure.
+  contracts of the external systems it calls (`Contracts/Messaging`, `Contracts/Push`). No infrastructure.
 - `Data.PostgreSql` — EF Core `DbContext`, repositories, Unit of Work, the outbox and its interceptor, refresh tokens,
   migrations.
 - `Anticorruption.*` — one project per external system, translating it into domain terms: `WhatsApp` (Meta Cloud
   API, called directly with no intermediary: template sends and the webhook's link code, PARAR and delivery
   status), `ExpoPush` (the ping and its receipts, which reveal an uninstalled app) and `RevenueCat` (the subscription
-  webhook: purchase, renewal, cancellation, expiration, translated into the Premium state).
+  webhook, translated into `Account.PremiumUntil`).
 - `API` — controllers, sync endpoints, the WhatsApp and RevenueCat webhooks, social login, the per-minute worker and the outbox processor
   (hosted services), DI composition. Thin; delegates to domain services.
 - `tests/RevoSolutions.CMI.Tests` — one test project for the solution.
@@ -182,9 +182,9 @@ How it is built:
   `Anticorruption.ExpoPush`, so the no-contact notice simply comes `PingWait` after the limit.
 - `NoticeWorker` (every minute, one scope per account) and `OutboxWorker` (every 5 seconds) are the hosted services.
   Tests remove both and call `NoticeService` and `OutboxProcessor` themselves.
-- Only accounts whose contact linked up on WhatsApp and didn't answer PARAR are checked (`AccountsToCheck`), and
-  only medications with `SharedWithContact` (not paused, not deleted) count. The handler checks the contact again
-  before sending. Abandonment counts from `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
+- Only Premium accounts whose contact linked up on WhatsApp and didn't answer PARAR are checked (`AccountsToCheck`),
+  and only medications with `SharedWithContact` (not paused, not deleted) count. The handler checks Premium and the
+  contact again before sending; a notice decided before Premium ended is never sent. Abandonment counts from `Account.LastTakenAt`, the latest "Tomei" received, or the account's creation.
 - A missed dose is notified only while its deadline is under an hour old, so a worker outage or a contact added
   later doesn't send stale notices, and only for doses scheduled after the medication's last change.
 
@@ -203,9 +203,26 @@ phone numbers or message text.
   of its own, in the prefilled message to the app's number. The webhook (`api/v1/webhooks/whatsapp`, signed with
   `X-Hub-Signature-256`) hands text messages to `ContactLinkService.Receive`: a known code links the sender's number
   (`Contact.WhatsAppNumber`, where notices go, not `Phone`), PARAR stops every contact with that number, and sending
-  the code again resumes. Each message gets a reply.
+  the code again resumes. Each message gets a reply. Linking works without Premium (the app shows the link only
+  with it): the link is kept, and the reply says the notices start once Premium is active.
 - A new phone for the contact drops the link and draws a new code: another person links up themselves.
 - Tests replace Meta with `FakeWhatsApp`, an `HttpMessageHandler` that records what the API sends.
+
+### Premium
+
+`Account.PremiumUntil` is the only Premium state on the server, and only `Anticorruption.RevenueCat` writes it.
+`Account.IsPremium(now)` is the check. The app user id in RevenueCat is the account id.
+
+- The webhook (`api/v1/webhooks/revenuecat`) checks the `Authorization` header against
+  `RevenueCat:WebhookAuthorization`, the value set in RevenueCat's dashboard. It doesn't interpret the event type: it
+  takes every account id the event names (app user, aliases, transfer from and to) and reads that customer back from
+  RevenueCat's REST API v1 (`GET subscribers/{id}`, with the `RevenueCat:ApiKey` secret key), as RevenueCat
+  recommends. Refunds, transfers, repeated and out-of-order events need no rules of their own that way.
+- `PremiumUntil` is the `RevenueCat:EntitlementId` entitlement's expiry, or its grace period's when later; an
+  entitlement that never expires is `DateTime.MaxValue`; no entitlement is null. Sandbox purchases count, so
+  TestFlight and the stores' review can test Premium.
+- A failing call returns an error, and RevenueCat retries for about 80 minutes.
+- Tests replace RevenueCat with `FakeRevenueCat`, and `CmiApiFactory.SetPremium` plays a store change.
 
 ### API contract
 
@@ -261,9 +278,11 @@ npx tsc --noEmit
 What the MVP includes and what comes after it: `docs/escopo.md`.
 
 - The back end has login, refresh, logout, the active device, account deletion, the profile with the name, sync, the
-  heartbeat, the notice rules, the worker, the outbox and WhatsApp (linking, PARAR, the notice templates). Not yet:
-  the ExpoPush and RevenueCat projects, SOS, the uninstalled-app notice (it comes from the push receipts), and the
-  Premium gate on linking and notices (`NoticeService.AccountsToCheck` and `SendNoticeHandler` are where it goes).
+  heartbeat, the notice rules, the worker, the outbox, WhatsApp (linking, PARAR, the notice templates) and Premium
+  from RevenueCat, which gates the notices. Not yet: the ExpoPush project, SOS, the uninstalled-app notice (it comes
+  from the push receipts).
+- RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
+  its Authorization header.
 - WhatsApp delivery statuses are only logged when they fail; storing them comes with SOS, whose status the app shows.
 - The six templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.

@@ -37,7 +37,7 @@ public sealed class NoticeWorker : BackgroundService
             IReadOnlyList<Guid> accountIds;
             using (var scope = _scopes.CreateScope())
             {
-                accountIds = await scope.ServiceProvider.GetRequiredService<NoticeService>().AccountsToCheck();
+                accountIds = await scope.ServiceProvider.GetRequiredService<NoticeService>().AccountsToCheck(now);
             }
 
             foreach (var accountId in accountIds)

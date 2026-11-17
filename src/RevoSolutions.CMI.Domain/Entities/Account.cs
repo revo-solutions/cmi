@@ -53,6 +53,11 @@ public class Account : EntityBase
     // Null until the device first sends the profile.
     public DateTime? ProfileUpdatedAt { get; set; }
 
+    // Set only from RevenueCat, never from the app; grace periods included. Null never had Premium.
+    public DateTime? PremiumUntil { get; set; }
+
+    public bool IsPremium(DateTime now) => PremiumUntil > now;
+
     public static Account Create(LoginProvider provider, string subject, string? email, Guid deviceId) => new()
     {
         Provider = provider,

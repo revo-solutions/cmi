@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using RevoSolutions.CMI.Anticorruption.RevenueCat;
 using RevoSolutions.CMI.Anticorruption.WhatsApp;
 using RevoSolutions.CMI.API.Notices;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
@@ -45,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IDomainEventHandler<NoticeCreatedDomainEvent>, SendNoticeHandler>();
         services.AddScoped<NoticeMessageBuilder>();
         services.AddWhatsApp(configuration);
+        services.AddRevenueCat(configuration);
         services.AddHostedService<NoticeWorker>();
         services.AddHostedService<OutboxWorker>();
 

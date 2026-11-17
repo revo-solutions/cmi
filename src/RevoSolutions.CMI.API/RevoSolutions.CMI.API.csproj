@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RevoSolutions.CMI.Anticorruption.RevenueCat\RevoSolutions.CMI.Anticorruption.RevenueCat.csproj" />
     <ProjectReference Include="..\RevoSolutions.CMI.Anticorruption.WhatsApp\RevoSolutions.CMI.Anticorruption.WhatsApp.csproj" />
     <ProjectReference Include="..\RevoSolutions.CMI.Data.PostgreSql\RevoSolutions.CMI.Data.PostgreSql.csproj" />
     <ProjectReference Include="..\RevoSolutions.CMI.Domain\RevoSolutions.CMI.Domain.csproj" />

@@ -144,6 +144,9 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTime?>("PremiumUntil")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ProfileUpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

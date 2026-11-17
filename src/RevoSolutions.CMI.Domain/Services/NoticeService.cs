@@ -40,9 +40,14 @@ public class NoticeService
         _settings = settings;
     }
 
-    // Only accounts whose contact linked up on WhatsApp and didn't answer PARAR. Premium narrows this further once it exists.
-    public async Task<IReadOnlyList<Guid>> AccountsToCheck() =>
-        (await _contacts.Get(c => c.LinkedAt != null && c.StoppedAt == null)).Select(c => c.AccountId).Distinct().ToList();
+    // Only Premium accounts whose contact linked up on WhatsApp and didn't answer PARAR. An account whose Premium ended
+    // keeps its link, so the notices resume when it subscribes again.
+    public async Task<IReadOnlyList<Guid>> AccountsToCheck(DateTime now)
+    {
+        var linked = (await _contacts.Get(c => c.LinkedAt != null && c.StoppedAt == null)).Select(c => c.AccountId).Distinct().ToList();
+
+        return (await _accounts.Get(a => linked.Contains(a.Id) && a.PremiumUntil > now)).Select(a => a.Id).ToList();
+    }
 
     public async Task Check(Guid accountId, DateTime now)
     {

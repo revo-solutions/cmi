@@ -78,6 +78,23 @@ public class WhatsAppTests
     }
 
     [Fact]
+    public async Task Without_premium_the_link_is_kept_and_the_reply_says_when_the_notices_start()
+    {
+        var subject = CmiApiFactory.NewSubject();
+        var phone = await PersonWithContact("Maria", Relationship.Mother, subject);
+        var whatsApp = CmiApiFactory.NewWhatsAppNumber();
+        var code = (await Link(phone)).Code;
+
+        await Receive(whatsApp, code);
+        (await Link(phone)).Linked.Should().BeTrue();
+        LastReply(whatsApp).Should().Contain("quando o Premium for ativado");
+
+        await _factory.SetPremium((await _factory.StoredAccount(subject)).Id, DateTimeOffset.UtcNow.AddMonths(1));
+        await Receive(whatsApp, code);
+        LastReply(whatsApp).Should().StartWith("Pronto! Você vai receber aqui os avisos da sua mãe, Maria").And.NotContain("Premium");
+    }
+
+    [Fact]
     public async Task A_new_phone_for_the_contact_needs_a_new_link()
     {
         var contact = new ContactModel(Guid.NewGuid(), "Ana", "+5511999990000", Relationship.Mother, false, DateTimeOffset.UtcNow.AddMinutes(-5));
@@ -103,9 +120,9 @@ public class WhatsAppTests
         (await phone.GetAsync("/api/v1/contact/link")).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<HttpClient> PersonWithContact(string? name, Relationship relationship)
+    private async Task<HttpClient> PersonWithContact(string? name, Relationship relationship, string? subject = null)
     {
-        var phone = await _factory.SignedInClient(CmiApiFactory.NewSubject(), Guid.NewGuid());
+        var phone = await _factory.SignedInClient(subject ?? CmiApiFactory.NewSubject(), Guid.NewGuid());
         await Sync(phone, new SyncModel
         {
             Profile = new ProfileModel(name, null, [], null, null, null, null, DateTimeOffset.UtcNow),

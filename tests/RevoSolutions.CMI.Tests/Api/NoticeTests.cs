@@ -221,10 +221,28 @@ public class NoticeTests
         (await _factory.ReceiveWhatsApp(stopped.WhatsApp, "Parar")).EnsureSuccessStatusCode();
         await ProcessOutbox();
 
-        using var scope = _factory.Services.CreateScope();
-        (await scope.ServiceProvider.GetRequiredService<NoticeService>().AccountsToCheck())
-            .Should().NotContain([unlinked.AccountId, stopped.AccountId]);
+        (await AccountsToCheck(now)).Should().NotContain([unlinked.AccountId, stopped.AccountId]);
         Templates(stopped).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task When_premium_ends_nothing_is_sent_and_the_link_waits_for_a_new_subscription()
+    {
+        var now = DaytimeNow();
+        var (_, time) = LocalMinutesAgo(now, 65);
+        var person = await Person(new SyncModel { Medications = [Medication(time)] });
+        (await AccountsToCheck(now)).Should().Contain(person.AccountId);
+
+        // Decided while Premium, sent after it ended.
+        await Check(person.AccountId, now);
+        await _factory.SetPremium(person.AccountId, DateTimeOffset.UtcNow.AddMinutes(-1), "EXPIRATION");
+        await ProcessOutbox();
+
+        Templates(person).Should().BeEmpty();
+        (await AccountsToCheck(now)).Should().NotContain(person.AccountId);
+
+        await _factory.SetPremium(person.AccountId, DateTimeOffset.UtcNow.AddMonths(1), "RENEWAL");
+        (await AccountsToCheck(now)).Should().Contain(person.AccountId);
     }
 
     private static MedicationModel Medication(params TimeOnly[] times) =>
@@ -251,8 +269,8 @@ public class NoticeTests
     private List<SentMessage> Templates(PersonSetup person) =>
         _factory.WhatsApp.SentTo(person.WhatsApp).Where(m => m.Template is not null).ToList();
 
-    // A signed-in person in São Paulo with a heartbeat, the given records and their mother as the trusted contact,
-    // linked up on WhatsApp unless told otherwise.
+    // A signed-in Premium person in São Paulo with a heartbeat, the given records and their mother as the trusted
+    // contact, linked up on WhatsApp unless told otherwise.
     private async Task<PersonSetup> Person(SyncModel records, string? pushToken = null, DevicePlatform platform = DevicePlatform.Android, bool link = true)
     {
         var subject = CmiApiFactory.NewSubject();
@@ -271,7 +289,16 @@ public class NoticeTests
             (await _factory.ReceiveWhatsApp(whatsApp, $"Quero receber os avisos. Código: {code}")).EnsureSuccessStatusCode();
         }
 
-        return new PersonSetup((await _factory.StoredAccount(subject)).Id, phone, whatsApp);
+        var accountId = (await _factory.StoredAccount(subject)).Id;
+        await _factory.SetPremium(accountId, DateTimeOffset.UtcNow.AddYears(1));
+
+        return new PersonSetup(accountId, phone, whatsApp);
+    }
+
+    private async Task<IReadOnlyList<Guid>> AccountsToCheck(DateTime now)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<NoticeService>().AccountsToCheck(now);
     }
 
     private async Task Check(Guid accountId, DateTime now)

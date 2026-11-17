@@ -11,14 +11,22 @@ namespace RevoSolutions.CMI.Domain.Handlers;
 public class SendNoticeHandler : IDomainEventHandler<NoticeCreatedDomainEvent>
 {
     private readonly IRepository<Notice> _notices;
+    private readonly IRepository<Account> _accounts;
     private readonly IRepository<Contact> _contacts;
     private readonly NoticeMessageBuilder _messages;
     private readonly INoticeSender _sender;
     private readonly IUnitOfWork _unitOfWork;
 
-    public SendNoticeHandler(IRepository<Notice> notices, IRepository<Contact> contacts, NoticeMessageBuilder messages, INoticeSender sender, IUnitOfWork unitOfWork)
+    public SendNoticeHandler(
+        IRepository<Notice> notices,
+        IRepository<Account> accounts,
+        IRepository<Contact> contacts,
+        NoticeMessageBuilder messages,
+        INoticeSender sender,
+        IUnitOfWork unitOfWork)
     {
         _notices = notices;
+        _accounts = accounts;
         _contacts = contacts;
         _messages = messages;
         _sender = sender;
@@ -32,6 +40,13 @@ public class SendNoticeHandler : IDomainEventHandler<NoticeCreatedDomainEvent>
         // The outbox delivers at least once; a notice already sent is not paid for twice. A deleted account takes its
         // notices with it.
         if (notice is null || notice.SentAt is not null)
+        {
+            return;
+        }
+
+        // Premium ended after the notice was decided: it is never sent, not even on subscribing again.
+        var account = await _accounts.FirstOrDefault(a => a.Id == notice.AccountId);
+        if (account?.IsPremium(DateTime.UtcNow) != true)
         {
             return;
         }
