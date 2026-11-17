@@ -26,16 +26,25 @@ public class SyncTests
         var phone = await _factory.SignedInClient(subject, Guid.NewGuid());
         var profile = new ProfileModel("Maria", new DateOnly(1950, 3, 9), ["hipertensao", "outra"], "Glaucoma", true, false, true, Start);
         var medication = Medication(Start);
+        var period = Period(medication);
         var dose = Dose(medication.Id, takenAt: Start.AddMinutes(5), Start.AddMinutes(5));
         var contact = Contact(Start);
 
-        await Upload(phone, new SyncModel { Profile = profile, Medications = [medication], DoseRecords = [dose], Contacts = [contact] });
+        await Upload(phone, new SyncModel
+        {
+            Profile = profile,
+            Medications = [medication],
+            MedicationPeriods = [period],
+            DoseRecords = [dose],
+            Contacts = [contact],
+        });
 
         var newPhone = await _factory.SignedInClient(subject, Guid.NewGuid());
         var download = await Download(newPhone);
 
         download.Profile.Should().BeEquivalentTo(profile);
         download.Medications.Should().ContainSingle().Which.Should().BeEquivalentTo(medication);
+        download.MedicationPeriods.Should().ContainSingle().Which.Should().BeEquivalentTo(period);
         download.DoseRecords.Should().ContainSingle().Which.Should().BeEquivalentTo(dose);
         download.Contacts.Should().ContainSingle().Which.Should().BeEquivalentTo(contact);
     }
@@ -132,6 +141,19 @@ public class SyncTests
     }
 
     [Fact]
+    public async Task A_period_of_an_unknown_medication_is_rejected()
+    {
+        var phone = await _factory.SignedInClient(CmiApiFactory.NewSubject(), Guid.NewGuid());
+
+        var response = await phone.PostAsJsonAsync(
+            "/api/v1/sync",
+            new SyncModel { MedicationPeriods = [Period(Medication(Start))] },
+            CmiApiFactory.Json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Health_conditions_must_be_known_codes()
     {
         var phone = await _factory.SignedInClient(CmiApiFactory.NewSubject(), Guid.NewGuid());
@@ -146,6 +168,9 @@ public class SyncTests
 
     private static MedicationModel Medication(DateTimeOffset updatedAt) =>
         new(Guid.NewGuid(), "Losartana", "50 mg, 1 comprimido", [new TimeOnly(8, 0), new TimeOnly(20, 0)], false, true, false, updatedAt);
+
+    private static MedicationPeriodModel Period(MedicationModel medication) =>
+        new(Guid.NewGuid(), medication.Id, medication.UpdatedAt, medication.Times, medication.Paused, medication.UpdatedAt);
 
     private static DoseRecordModel Dose(Guid medicationId, DateTimeOffset? takenAt, DateTimeOffset updatedAt) =>
         new(Guid.NewGuid(), medicationId, new DateOnly(2026, 11, 16), new TimeOnly(8, 0), takenAt, updatedAt);

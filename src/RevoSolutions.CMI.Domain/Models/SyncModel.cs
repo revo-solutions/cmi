@@ -7,6 +7,8 @@ public record SyncModel
 
     public IReadOnlyList<MedicationModel> Medications { get; init; } = [];
 
+    public IReadOnlyList<MedicationPeriodModel> MedicationPeriods { get; init; } = [];
+
     public IReadOnlyList<DoseRecordModel> DoseRecords { get; init; } = [];
 
     public IReadOnlyList<ContactModel> Contacts { get; init; } = [];

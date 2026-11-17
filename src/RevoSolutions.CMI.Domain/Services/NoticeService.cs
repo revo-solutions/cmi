@@ -18,6 +18,7 @@ public class NoticeService
     private readonly IRepository<Account> _accounts;
     private readonly IRepository<Contact> _contacts;
     private readonly IRepository<Medication> _medications;
+    private readonly IRepository<MedicationPeriod> _periods;
     private readonly IRepository<DoseRecord> _doseRecords;
     private readonly IRepository<Notice> _notices;
     private readonly IUnitOfWork _unitOfWork;
@@ -28,6 +29,7 @@ public class NoticeService
         IRepository<Account> accounts,
         IRepository<Contact> contacts,
         IRepository<Medication> medications,
+        IRepository<MedicationPeriod> periods,
         IRepository<DoseRecord> doseRecords,
         IRepository<Notice> notices,
         IUnitOfWork unitOfWork,
@@ -38,6 +40,7 @@ public class NoticeService
         _accounts = accounts;
         _contacts = contacts;
         _medications = medications;
+        _periods = periods;
         _doseRecords = doseRecords;
         _notices = notices;
         _unitOfWork = unitOfWork;
@@ -146,10 +149,11 @@ public class NoticeService
             .ToHashSet();
 
         // Doses whose deadline passed within the catch-up window.
+        var ids = medications.Select(m => m.Id).ToList();
+        var periods = await _periods.Get(p => ids.Contains(p.MedicationId));
         var latest = now - _settings.MissedDoseAfter;
-        var missed = medications
-            .SelectMany(medication => medication.DosesBetween(latest - MissedDoseCatchUp, latest, timeZone)
-                .Where(dose => !taken.Contains((medication.Id, dose.Date, dose.Time))))
+        var missed = MedicationPeriod.DosesBetween(periods, latest - MissedDoseCatchUp, latest, timeZone)
+            .Where(dose => !taken.Contains((dose.MedicationId, dose.Date, dose.Time)))
             .Where(dose => account.LastSeenAt >= dose.ScheduledAt + _settings.MissedDoseAfter - _settings.RecentContact)
             .Select(dose => (dose.Date, dose.Time))
             .Distinct()

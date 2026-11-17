@@ -13,13 +13,20 @@ public class NoticeMessageBuilder
 {
     private readonly IRepository<Account> _accounts;
     private readonly IRepository<Medication> _medications;
+    private readonly IRepository<MedicationPeriod> _periods;
     private readonly IRepository<DoseRecord> _doseRecords;
     private readonly NoticeSettings _settings;
 
-    public NoticeMessageBuilder(IRepository<Account> accounts, IRepository<Medication> medications, IRepository<DoseRecord> doseRecords, NoticeSettings settings)
+    public NoticeMessageBuilder(
+        IRepository<Account> accounts,
+        IRepository<Medication> medications,
+        IRepository<MedicationPeriod> periods,
+        IRepository<DoseRecord> doseRecords,
+        NoticeSettings settings)
     {
         _accounts = accounts;
         _medications = medications;
+        _periods = periods;
         _doseRecords = doseRecords;
         _settings = settings;
     }
@@ -59,7 +66,7 @@ public class NoticeMessageBuilder
 
         return notice.Kind switch
         {
-            NoticeKind.MissedDose => await MissedDose(notice, subject),
+            NoticeKind.MissedDose => await MissedDose(account, notice, subject),
             NoticeKind.DailySummary => await Summary(account, notice.Day, subject),
             NoticeKind.Sos => new(NoticeTemplate.Sos, [subject, string.Create(CultureInfo.InvariantCulture, $"{notice.Day:dd/MM} às {notice.ScheduledTime:HH:mm}")]),
             NoticeKind.NoContact => new(NoticeTemplate.NoContact, [subject, Number(_settings.NoContactLimit(account.Platform).TotalHours)]),
@@ -70,14 +77,20 @@ public class NoticeMessageBuilder
         };
     }
 
-    private async Task<NoticeMessage?> MissedDose(Notice notice, string subject)
+    // The medications due at that time on that day by the schedule they had then. The rules decide a missed dose only
+    // for an account with a time zone.
+    private async Task<NoticeMessage?> MissedDose(Account account, Notice notice, string subject)
     {
         var time = notice.ScheduledTime!.Value;
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(account.TimeZone!);
+        var scheduledAt = TimeZoneInfo.ConvertTimeToUtc(notice.Day.ToDateTime(time), timeZone);
         var taken = (await _doseRecords.Get(d => d.AccountId == notice.AccountId && d.ScheduledDate == notice.Day && d.ScheduledTime == time && d.TakenAt != null))
             .Select(d => d.MedicationId)
             .ToHashSet();
-        var medications = (await SharedMedications(notice.AccountId))
-            .Where(m => m.Times.Contains(time) && !taken.Contains(m.Id))
+        var shared = await SharedMedications(notice.AccountId);
+        var due = (await Doses(shared, scheduledAt.AddTicks(-1), scheduledAt, timeZone)).Select(dose => dose.MedicationId).ToHashSet();
+        var medications = shared
+            .Where(m => due.Contains(m.Id) && !taken.Contains(m.Id))
             .OrderBy(m => m.Name, StringComparer.CurrentCulture)
             .Select(m => string.IsNullOrWhiteSpace(m.Dose) ? m.Name : $"{m.Name} {m.Dose}")
             .ToList();
@@ -102,8 +115,8 @@ public class NoticeMessageBuilder
         var taken = (await _doseRecords.Get(d => d.AccountId == account.Id && d.ScheduledDate >= since && d.TakenAt != null))
             .Select(d => (d.MedicationId, d.ScheduledDate, d.ScheduledTime))
             .ToHashSet();
-        var doses = (await SharedMedications(account.Id))
-            .SelectMany(m => m.DosesBetween(end.AddDays(-1), end, timeZone).Select(dose => (Taken: taken.Contains((m.Id, dose.Date, dose.Time)), dose.ScheduledAt)))
+        var doses = (await Doses(await SharedMedications(account.Id), end.AddDays(-1), end, timeZone))
+            .Select(dose => (Taken: taken.Contains((dose.MedicationId, dose.Date, dose.Time)), dose.ScheduledAt))
             .ToList();
 
         var recorded = doses.Count(d => d.Taken);
@@ -112,8 +125,18 @@ public class NoticeMessageBuilder
         return new(NoticeTemplate.DailySummary, [subject, Number(recorded), Number(unconfirmed), Number(doses.Count - recorded - unconfirmed)]);
     }
 
+    // A medication paused today still counts the doses it had before the pause; its periods say when.
     private Task<IReadOnlyList<Medication>> SharedMedications(Guid accountId) =>
-        _medications.Get(m => m.AccountId == accountId && m.SharedWithContact && !m.Paused && !m.Deleted);
+        _medications.Get(m => m.AccountId == accountId && m.SharedWithContact && !m.Deleted);
+
+    private async Task<List<(Guid MedicationId, DateOnly Date, TimeOnly Time, DateTime ScheduledAt)>> Doses(
+        IReadOnlyList<Medication> medications, DateTime from, DateTime to, TimeZoneInfo timeZone)
+    {
+        var ids = medications.Select(m => m.Id).ToList();
+        var periods = await _periods.Get(p => ids.Contains(p.MedicationId));
+
+        return MedicationPeriod.DosesBetween(periods, from, to, timeZone).ToList();
+    }
 
     private static string Number(double value) => value.ToString("0", CultureInfo.InvariantCulture);
 }

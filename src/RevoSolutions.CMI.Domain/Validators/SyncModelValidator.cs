@@ -15,6 +15,9 @@ public class SyncModelValidator : AbstractValidator<SyncModel>
         RuleFor(sync => sync.Medications).NotNull().Must(list => list.Count <= MaxRecordsPerList);
         RuleForEach(sync => sync.Medications).SetValidator(new MedicationModelValidator());
 
+        RuleFor(sync => sync.MedicationPeriods).NotNull().Must(list => list.Count <= MaxRecordsPerList);
+        RuleForEach(sync => sync.MedicationPeriods).SetValidator(new MedicationPeriodModelValidator());
+
         RuleFor(sync => sync.DoseRecords).NotNull().Must(list => list.Count <= MaxRecordsPerList);
         RuleForEach(sync => sync.DoseRecords).SetValidator(new DoseRecordModelValidator());
 

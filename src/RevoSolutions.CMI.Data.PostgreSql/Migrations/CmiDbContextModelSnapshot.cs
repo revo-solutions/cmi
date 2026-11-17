@@ -326,6 +326,42 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.ToTable("Medications", (string)null);
                 });
 
+            modelBuilder.Entity("RevoSolutions.CMI.Domain.Entities.MedicationPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MedicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Paused")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<List<TimeOnly>>("Times")
+                        .IsRequired()
+                        .HasColumnType("time without time zone[]");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("MedicationId");
+
+                    b.ToTable("MedicationPeriods", (string)null);
+                });
+
             modelBuilder.Entity("RevoSolutions.CMI.Domain.Entities.Notice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -414,6 +450,21 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.HasOne("RevoSolutions.CMI.Domain.Entities.Account", null)
                         .WithMany()
                         .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RevoSolutions.CMI.Domain.Entities.MedicationPeriod", b =>
+                {
+                    b.HasOne("RevoSolutions.CMI.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RevoSolutions.CMI.Domain.Entities.Medication", null)
+                        .WithMany()
+                        .HasForeignKey("MedicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

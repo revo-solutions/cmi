@@ -1,15 +1,17 @@
 # Banco de dados
 
 Diagrama entidade-relacionamento do PostgreSQL, baseado no `CmiDbContextModelSnapshot` após a migration
-`AddOutboxRetries`. Atualize o diagrama quando uma migration alterar tabelas, colunas ou chaves.
+`AddMedicationPeriods`. Atualize o diagrama quando uma migration alterar tabelas, colunas ou chaves.
 
 ```mermaid
 erDiagram
     Accounts ||..o{ Medications : ""
+    Accounts ||..o{ MedicationPeriods : ""
     Accounts ||..o{ DoseRecords : ""
     Accounts ||..o{ Contacts : ""
     Accounts ||..o{ Notices : ""
     Accounts ||..o{ RefreshTokens : ""
+    Medications ||..o{ MedicationPeriods : ""
     Medications ||..o{ DoseRecords : ""
 
     Accounts {
@@ -43,10 +45,21 @@ erDiagram
         uuid AccountId FK
         varchar(200) Name
         varchar(200) Dose "opcional"
-        time[] Times "horários locais"
-        boolean Paused
+        time[] Times "horários locais atuais"
+        boolean Paused "estado atual"
         boolean Deleted "exclusão lógica"
         boolean SharedWithContact
+        timestamptz UpdatedAt
+        timestamptz CreatedDate
+    }
+
+    MedicationPeriods {
+        uuid Id PK
+        uuid AccountId FK
+        uuid MedicationId FK
+        timestamptz StartsAt "vale até o próximo período"
+        time[] Times "horários locais"
+        boolean Paused
         timestamptz UpdatedAt
         timestamptz CreatedDate
     }
@@ -118,6 +131,8 @@ erDiagram
   conta.
 - As chaves estrangeiras usam `ON DELETE CASCADE`. Na sincronização, a exclusão lógica de medicamentos
   (`Deleted = true`) preserva o histórico de doses.
+- `MedicationPeriods` guarda o histórico de horários e pausas de cada medicamento. As doses esperadas num dia passado
+  vêm do período vigente naquele dia, não de `Medications.Times`.
 - O índice de `Contacts.AccountId` permite vários registros por conta. O vínculo usa `LinkCode` e os avisos
   seguem para `WhatsAppNumber` após a confirmação pelo contato.
 - O índice de `Notices.MessageId` permite localizar o aviso quando o webhook do WhatsApp informa o status da

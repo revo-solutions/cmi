@@ -9,6 +9,8 @@ public partial class SyncMapper
 {
     public partial MedicationModel ToModel(Medication entity);
 
+    public partial MedicationPeriodModel ToModel(MedicationPeriod entity);
+
     public partial DoseRecordModel ToModel(DoseRecord entity);
 
     [MapValue(nameof(ContactModel.Deleted), false)]

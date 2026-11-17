@@ -13,6 +13,7 @@ public class SyncService
 {
     private readonly IRepository<Account> _accounts;
     private readonly IRepository<Medication> _medications;
+    private readonly IRepository<MedicationPeriod> _periods;
     private readonly IRepository<DoseRecord> _doseRecords;
     private readonly IRepository<Contact> _contacts;
     private readonly SyncMapper _mapper;
@@ -22,6 +23,7 @@ public class SyncService
     public SyncService(
         IRepository<Account> accounts,
         IRepository<Medication> medications,
+        IRepository<MedicationPeriod> periods,
         IRepository<DoseRecord> doseRecords,
         IRepository<Contact> contacts,
         SyncMapper mapper,
@@ -30,6 +32,7 @@ public class SyncService
     {
         _accounts = accounts;
         _medications = medications;
+        _periods = periods;
         _doseRecords = doseRecords;
         _contacts = contacts;
         _mapper = mapper;
@@ -45,6 +48,7 @@ public class SyncService
         {
             Profile = SyncMapper.ToProfile(account),
             Medications = (await _medications.Get(m => m.AccountId == account.Id)).Select(_mapper.ToModel).ToList(),
+            MedicationPeriods = (await _periods.Get(p => p.AccountId == account.Id)).Select(_mapper.ToModel).ToList(),
             DoseRecords = (await _doseRecords.Get(d => d.AccountId == account.Id)).Select(_mapper.ToModel).ToList(),
             Contacts = (await _contacts.Get(c => c.AccountId == account.Id)).Select(_mapper.ToModel).ToList(),
         };
@@ -79,6 +83,21 @@ public class SyncService
             else if (medication.IsOlderThan(change.UpdatedAt))
             {
                 medication.Update(change);
+            }
+        }
+
+        var periods = Latest(changes.MedicationPeriods, p => p.Id, p => p.UpdatedAt);
+        await EnsureMedicationsExist(account.Id, periods.Select(p => p.MedicationId).Except(medications.Select(m => m.Id)));
+        var storedPeriods = await Stored(_periods, account.Id, periods.Select(p => p.Id));
+        foreach (var change in periods)
+        {
+            if (!storedPeriods.TryGetValue(change.Id, out var period))
+            {
+                await _periods.Add(MedicationPeriod.Create(account.Id, change));
+            }
+            else if (period.IsOlderThan(change.UpdatedAt))
+            {
+                period.Update(change);
             }
         }
 
@@ -159,7 +178,7 @@ public class SyncService
         var found = await _medications.Get(m => m.AccountId == accountId && idArray.Contains(m.Id));
         if (found.Count != idArray.Length)
         {
-            throw new DomainException("A dose record refers to a medication that was never synced.");
+            throw new DomainException("A record refers to a medication that was never synced.");
         }
     }
 

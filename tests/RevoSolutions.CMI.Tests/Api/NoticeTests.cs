@@ -215,6 +215,41 @@ public class NoticeTests
     }
 
     [Fact]
+    public async Task The_summary_reads_each_dose_with_the_schedule_it_had()
+    {
+        // A day whose 20:00 is less than the no-contact limit after the setup's contact.
+        var today = DateOnly.FromDateTime(Local(DateTime.UtcNow));
+        var day = Local(DateTime.UtcNow).Hour < 9 ? today.AddDays(-1) : today;
+
+        // Moved from 08:00 to 18:00 at noon, then edited at 19:00 (an edit used to drop the day's earlier doses).
+        var moved = Medication(new TimeOnly(18, 0)) with { UpdatedAt = LocalToUtc(day, new TimeOnly(19, 0)) };
+        var morning = new MedicationPeriodModel(Guid.NewGuid(), moved.Id, LongAgo, [new TimeOnly(8, 0)], false, LongAgo);
+        var evening = new MedicationPeriodModel(Guid.NewGuid(), moved.Id, LocalToUtc(day, new TimeOnly(12, 0)), [new TimeOnly(18, 0)], false, LongAgo);
+        var tomei = new DoseRecordModel(Guid.NewGuid(), moved.Id, day, new TimeOnly(8, 0), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+
+        // Paused at 10:00: its 08:00 dose still counts, its 12:00 one doesn't.
+        var paused = Medication(new TimeOnly(8, 0), new TimeOnly(12, 0)) with { Paused = true };
+        var beforePause = new MedicationPeriodModel(Guid.NewGuid(), paused.Id, LongAgo, paused.Times, false, LongAgo);
+        var pause = new MedicationPeriodModel(Guid.NewGuid(), paused.Id, LocalToUtc(day, new TimeOnly(10, 0)), paused.Times, true, LongAgo);
+
+        var person = await Person(new SyncModel
+        {
+            Medications = [moved, paused],
+            MedicationPeriods = [morning, evening, beforePause, pause],
+            DoseRecords = [tomei],
+        });
+
+        await Check(person.AccountId, LocalToUtc(day, new TimeOnly(20, 5)));
+        await ProcessOutbox();
+
+        Templates(person).Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Template = "resumo_diario",
+            Parameters = new[] { "da sua mãe", "1", "2", "0" },
+        });
+    }
+
+    [Fact]
     public async Task While_the_phone_is_silent_the_summary_says_there_is_no_data()
     {
         var person = await Person(new SyncModel { Medications = [Medication(new TimeOnly(8, 0))] });
@@ -316,7 +351,12 @@ public class NoticeTests
         (await phone.PostAsJsonAsync("/api/v1/sync/heartbeat", new HeartbeatModel(platform, "America/Sao_Paulo", pushToken), CmiApiFactory.Json))
             .EnsureSuccessStatusCode();
         var contact = new ContactModel(Guid.NewGuid(), "Ana", "+5511999990000", Relationship.Mother, false, LongAgo);
-        (await phone.PostAsJsonAsync("/api/v1/sync", records with { Contacts = [contact] }, CmiApiFactory.Json))
+
+        // The app starts a period with each medication; a test about the schedule's history sends its own.
+        var periods = records.MedicationPeriods.Count > 0
+            ? records.MedicationPeriods
+            : records.Medications.Select(m => new MedicationPeriodModel(Guid.NewGuid(), m.Id, LongAgo, m.Times, m.Paused, LongAgo)).ToList();
+        (await phone.PostAsJsonAsync("/api/v1/sync", records with { Contacts = [contact], MedicationPeriods = periods }, CmiApiFactory.Json))
             .EnsureSuccessStatusCode();
 
         var whatsApp = CmiApiFactory.NewWhatsAppNumber();
