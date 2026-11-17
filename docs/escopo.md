@@ -155,14 +155,14 @@ O objetivo é faturar o quanto antes. Por isso, o app vai direto para as lojas, 
 - **Android:** publicação direta na Play Store, assim que o app estiver pronto.
 - **iOS:** desenvolvido em paralelo com o Android, mas publicado na App Store só depois de testado adequadamente em iPhone real, com alguns dias de uso real sem falha de lembrete. A revisão da Apple não verifica se a notificação dispara no horário com o celular bloqueado. O iOS é prioridade porque concentra muitos clientes em potencial com maior disposição para pagar.
 - **Primeiros usuários.** Cerca de 20 pessoas, entre conhecidos e familiares, usam o app em produção por alguns dias antes de começar a divulgação. Elas encontram os problemas antes dos clientes pagantes.
-- **Ordem do desenvolvimento.** Começar pelo motor de agenda e testá-lo em aparelhos reais desde a primeira semana, antes das telas. O maior risco está nos lembretes, não na interface. O aparelho principal de desenvolvimento é Android.
+- **Ordem do desenvolvimento.** O motor de agenda usa o `expo-notifications`, decidido a partir do protótipo, sem a rodada em aparelhos reais antes das telas. Os lembretes continuam sendo o maior risco, por isso o fluxo de medicamentos só fica pronto depois de testado em aparelhos reais: Android e iPhone, com o app fechado, o celular bloqueado e sem internet. O aparelho principal de desenvolvimento é Android.
 
 ### Testes no iOS sem iPhone próprio
 
 No Windows não há simulador de iPhone. Até ter um iPhone próprio:
 
 - **TestFlight em iPhones de conhecidos.** O EAS gera o build e o envia ao TestFlight a partir do Windows. Um build por semana para uma ou duas pessoas com iPhone. A revisão do TestFlight não atrasa a da App Store.
-- **Tela de teste de lembrete.** O app agenda uma notificação para dali a um minuto, e a pessoa confere com o app fechado e o celular bloqueado se o lembrete tocou e se o **Tomei** foi registrado.
+- **Remédio de teste.** A pessoa cadastra um remédio para dali a alguns minutos e confere, com o app fechado e o celular bloqueado, se o lembrete tocou e se o **Tomei** foi registrado.
 - **Sentry desde o primeiro build**, para receber os erros dos aparelhos sem tê-los em mãos.
 - **iPhones na nuvem**, como BrowserStack e AWS Device Farm, servem para conferir telas e fluxos, mas não para testar notificações com o app fechado.
 - Um iPhone usado de entrada (iPhone 11 ou posterior roda o iOS atual) elimina a dependência de terceiros.

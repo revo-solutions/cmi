@@ -1,8 +1,4 @@
-# Teste de lembretes da Central Melhor Idade
-
-A tela agenda uma notificação local para daqui a um minuto. **Tomei** grava no SQLite o horário e o modo de execução. **Lembrar depois** agenda outra notificação um minuto depois para o mesmo teste.
-
-A tela usa o logo de `docs/marca/`, a paleta da marca e a fonte Atkinson Hyperlegible Next.
+# Central Melhor Idade
 
 ## Build
 
@@ -25,13 +21,3 @@ npx eas-cli@latest update --channel preview --message "o que mudou"
 ```
 
 Cada update vai só para os builds com o mesmo runtime, calculado pelo fingerprint da parte nativa. Depois de adicionar uma dependência nativa ou mudar `app.json`, gere um build novo: os builds antigos continuam com os updates do runtime deles.
-
-## Roteiro no aparelho
-
-1. Abra o app e toque em **Agendar lembrete**. Aceite notificações e, no Android, libere **Alarmes e lembretes** quando o sistema abrir os ajustes.
-2. Ative o modo avião. Volte à tela inicial ou retire o app da lista de recentes, bloqueie o celular e aguarde a notificação. Teste esses dois estados em execuções separadas.
-3. Expanda a notificação, toque em **Tomei**, aguarde alguns segundos e reabra o app manualmente. Confira a origem e compare o horário do registro com o da reabertura no cartão **Último teste**. O registro deve ter sido salvo antes da reabertura.
-4. Repita com **Lembrar depois**. Aguarde a segunda notificação e confirme com **Tomei**. Confira se houve uma única nova notificação e se o registro continuou disponível após fechar o app novamente.
-5. Repita com TalkBack ou VoiceOver e fonte ampliada. No Android, registre o fabricante, modelo e versão do sistema junto com o resultado. No iPhone, repita com a tela bloqueada e o app em segundo plano e retirado da lista de recentes.
-
-No teste de app fechado no Android, retire-o da lista de recentes. O comando **Forçar parada** dos ajustes é um estado diferente do sistema.

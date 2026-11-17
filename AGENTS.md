@@ -183,6 +183,13 @@ syncs as a whole, by `ProfileUpdatedAt`. A deleted medication stays as a tombsto
 point at it; a deleted contact is removed from the server. A dose record never changes which dose it is (medication,
 scheduled date and time, all wall-clock); only `TakenAt` changes, and undoing "Tomei" clears it.
 
+A medication's schedule history is its `MedicationPeriods`: from `StartsAt` until the medication's next period, its
+`Times`, or none while `Paused`. The app starts one when a medication is created, its times change, or it is paused or
+resumed, never for a name, dose or sharing edit, and never changes it afterwards. `MedicationPeriod.DosesBetween` reads
+them, so the summary, the notices, the app's history and the PDF expect the same doses on a past day; `Medication.Times`
+and `Paused` are only the current state. A period, like a dose, needs its medication on the server or in the same
+batch.
+
 A medication reaches the contact only with `SharedWithContact`; removing the contact clears it on every medication.
 
 `POST sync/heartbeat` is the sign of life: the app sends it on opening and periodically in the background, with the
@@ -355,8 +362,9 @@ Mobile, from `mobile/`:
 ```bash
 npm ci
 npx expo start --dev-client
-npx expo lint                                       # CI gate, with tsc
+npx expo lint                                       # CI gate, with tsc and the tests
 npx tsc --noEmit
+npm test                                            # Jest (jest-expo), for the pure logic
 ```
 
 ## Not done yet
@@ -371,21 +379,17 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - RevenueCat itself isn't set up yet: the products, the 14-day trial, the `premium` entitlement and the webhook with
   its Authorization header.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
-- Schedule history, decided and not built: the server keeps only a medication's current `Times` and `Paused`, and
-  `Medication.DosesBetween` drops every dose before `UpdatedAt`, which changes on any edit (switching on sharing at
-  19:00 takes the morning's doses out of the 20:00 summary). Next: `SyncModel.MedicationPeriods`, append-only records
-  like dose records (`Id`, `MedicationId`, `StartsAt`, `Times`, `Paused`, `UpdatedAt`); a period starts when a
-  medication is created, its times change, or it is paused or resumed, never for a name, dose or sharing edit.
-  `DosesBetween` reads the periods instead of `UpdatedAt`, so the summary, the notices, the app's history and the PDF
-  expect the same doses. The device keeps them in `medication_periods`.
 - Processed outbox messages and expired refresh tokens are never deleted; add a cleanup when the tables grow.
 - SOS over WhatsApp has no cap per account; each one is paid. Add one if a bug or abuse ever sends too many.
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). The API
   image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum of one replica, as in
   TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The
   rollout step, applying the migrations and the daily backup come with that choice.
-- The Expo app has only a local reminder test. Validate it on Android and a real iPhone with a bundled preview build
-  before building the medication screens. See `mobile/README.md`.
+- The Expo app opens on **Hoje** and links to **Perfil**. Add the tabs (`@react-navigation/bottom-tabs`) as their
+  features become usable. The reminder prototype was removed after deciding to proceed with `expo-notifications`;
+  a phone that ran it needs the app reinstalled to drop its leftover test notifications. Validate reminders through
+  the medication flow on Android and a real iPhone. `react-native-screens` is native, so running this navigation
+  needs a new development or preview build.
 
 ## Commits
 

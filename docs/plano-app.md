@@ -5,7 +5,7 @@ Roteiro para levar o app em `mobile/` do teste de lembrete ao MVP descrito em [e
 [canvas de identidade](https://claude.ai/artifact/KkgXf3Cyrsv7azcrM7StK1) (Entrada, Hoje, Lembrete e SOS). Marque os
 itens à medida que forem feitos e apague o plano quando o MVP estiver nas lojas, tirando o link dele do escopo.
 
-O app hoje abre na tela de teste: agenda uma notificação única e grava **Tomei** e **Lembrar depois** em SQLite.
+O app abre em **Hoje** e dá acesso ao **Perfil**, onde já se pode ativar letras grandes e mais contraste.
 A API já oferece login, sincronização, heartbeat, vínculo, SOS e os webhooks de WhatsApp e RevenueCat. As regras
 de produto continuam no [escopo do MVP](escopo.md#mvp); o brainstorming e as evoluções pós-MVP ficam de fora.
 
@@ -36,27 +36,17 @@ marca. Ao tomar uma nova, registre lá e tire daqui. Falta uma:
 
 ## Fase 0: validar o motor de lembretes
 
-Em andamento. Nada de telas de medicamento antes de terminar.
-
-- [ ] Rodar o roteiro do [README do app](../mobile/README.md) num Android (de preferência Xiaomi, Samsung ou Motorola)
-      com build `preview`, app fechado e modo avião.
-- [ ] Rodar o mesmo roteiro num iPhone real pelo TestFlight, com a tela bloqueada e o app fora da lista de recentes.
-- [ ] Sentry (`@sentry/react-native`) neste mesmo build, para ver os erros dos iPhones de terceiros.
-- [ ] Registrar os resultados (aparelho, sistema, origem do registro) e decidir se o `expo-notifications` basta. Se
-      não bastar, o código nativo entra atrás da interface de lembretes, com o motivo escrito no `AGENTS.md`.
-- [ ] Provar o gatilho diário repetido no mesmo roteiro antes do cadastro. Testar permissões negadas ou revogadas,
-      economia de bateria, modo Foco, reinício e mudança de fuso. O iOS guarda no máximo 64 notificações pendentes, e
-      cada horário diário repetido conta uma: horários, adiamentos, aniversário e aviso do fim do teste somados ficam
-      abaixo disso, e o cadastro avisa bem antes do limite.
+Encerrada por decisão do mantenedor. O app segue com `expo-notifications` com base no protótipo e na simulação com
+SQLite. A validação em aparelhos reais fica para o fluxo de medicamentos da fase 2.
 
 **Aceite:** **Tomei** fica salvo offline antes de reabrir o app; **Lembrar depois** dispara uma vez, mantém o horário
 original da dose e preserva o próximo disparo diário. A mesma ação entregue duas vezes não duplica o registro.
 
 ## Fase 1: fundação
 
-- [ ] Navegação: abas **Hoje**, **Remédios**, **Telefones** e **Artigos**, como no canvas, e **Perfil** pelo botão
-      do cabeçalho. Rótulos das abas com `maxFontSizeMultiplier` 1,15.
-- [ ] Componentes em `src/components`, já acessíveis (papel, rótulo, área mínima de 56 dp e 64 dp nas ações
+- [x] Navegação: abrir **Hoje** no `App.tsx`, com **Perfil** pelo botão do cabeçalho.
+- [ ] Gerar um cliente de desenvolvimento novo (`react-native-screens` é nativo) e conferir o aceite abaixo no aparelho.
+- [x] Componentes em `src/components`, já acessíveis (papel, rótulo, área mínima de 56 dp e 64 dp nas ações
       principais):
   - `AppText`, com os papéis de `theme.ts` e o multiplicador do modo de letras grandes;
   - `Screen`, com área segura e rolagem só vertical;
@@ -64,12 +54,12 @@ original da dose e preserva o próximo disparo diário. A mesma ação entregue 
   - `Card`, `StatusChip` (ícone e palavra para Pendente, Registrado e Sem confirmação), `Chip`, `TextField`, `YesNo`;
   - campos grandes de dia/mês/ano e de hora/minuto;
   - `Row`, que empilha acima de `stackedFontScale`.
-- [ ] Back-end: `SyncModel.MedicationPeriods` e o `DosesBetween` lendo os períodos, como descrito em "Not done yet"
-      no `AGENTS.md`. Muda o contrato antes de existir um cliente, então não quebra ninguém.
-- [ ] SQLite com migrações por `PRAGMA user_version`: `medications`, `dose_records`, `contact`, `profile`,
+- [x] Back-end: `SyncModel.MedicationPeriods` e o `MedicationPeriod.DosesBetween` lendo os períodos (`AGENTS.md`,
+      "Sync"). Mudou o contrato antes de existir um cliente, então não quebrou ninguém.
+- [x] SQLite com migrações por `PRAGMA user_version`: `medications`, `dose_records`, `contact`, `profile`,
       `medication_periods`, `outbox` e `settings`. Ids UUID e `updated_at` gerados no
       aparelho, como no `SyncModel`.
-- [ ] Jest com `jest-expo` para a lógica pura, rodando no CI junto com o lint e o `tsc`.
+- [x] Jest com `jest-expo` para a lógica pura, rodando no CI junto com o lint e o `tsc`.
 
 **Aceite:** navegação utilizável com TalkBack e VoiceOver, fonte máxima e modo de letras grandes. Formulários e
 estados continuam legíveis, com foco previsível, controles rotulados e rolagem só vertical. Conferir isso a cada fase.
@@ -83,7 +73,9 @@ Protótipo antes: o cadastro de remédio com os campos de hora e minuto e o hist
       ao abrir o app e depois de cada mudança, e receber **Tomei** e **Lembrar depois**. Um gatilho diário repetido
       por horário, com o id `medicamento:horário`; o adiamento é um gatilho único, com o intervalo num ajuste só.
 - [ ] **Tomei** cria ou atualiza o registro da dose (medicamento, data e hora marcadas no relógio do aparelho,
-      `taken_at`), com a mesma proteção contra a ação entregue duas vezes do teste atual.
+      `taken_at`), com proteção contra a mesma ação entregue duas vezes.
+- [ ] Barra de abas (`@react-navigation/bottom-tabs`) com **Hoje** e **Remédios**, como no canvas, e **Perfil** pelo
+      botão do cabeçalho. Rótulos das abas com `maxFontSizeMultiplier` 1,15.
 - [ ] Tela **Remédios**: lista, cadastro e edição (nome, dose em texto livre, horários), pausar e retomar, excluir
       (fica como exclusão lógica). A chave de compartilhar com o contato só aparece quando há contato. Mudar horários,
       pausar e retomar fecham o período vigente e abrem outro; editar nome ou dose não mexe nos períodos.
@@ -95,7 +87,12 @@ Protótipo antes: o cadastro de remédio com os campos de hora e minuto e o hist
       vêm dos períodos daquele dia, não dos horários atuais; dias pausados aparecem como pausados.
 - [ ] Android: canal `medicamentos`, alarme exato e a orientação para tirar o app da economia de bateria.
 - [ ] Testes: estado da dose, próximo horário, reconciliação dos lembretes.
-- [ ] Apagar a tela e a tabela do teste de lembrete.
+- [ ] Validar o gatilho diário, **Tomei** e **Lembrar depois** em modo avião, com tela bloqueada e o app fora dos
+      recentes, num Android e num iPhone real pelo TestFlight. Testar permissões negadas ou revogadas, economia de
+      bateria, modo Foco, reinício e mudança de fuso. Registrar aparelho, sistema e origem do registro. Preparar
+      Sentry (`@sentry/react-native`) para a rodada no iPhone.
+- [ ] Limitar os lembretes no cadastro. No iOS, horários diários, adiamentos, aniversário e aviso do fim do teste
+      precisam ficar abaixo do limite de 64 notificações pendentes.
 
 **Aceite:** cadastrar dois remédios com o mesmo horário, registrar um offline, adiar o outro e desfazer um toque.
 Editar, pausar e retomar sem alterar o que estava previsto antes da mudança ou deixar alarmes antigos. Cobrir
@@ -215,6 +212,7 @@ removido e dose corrigida; repetir após troca de celular. Conferir paginação 
       emergência). Tela por categoria, emergências primeiro, com botão de ligar.
 - [ ] Seleção inicial de artigos em `content/artigos/` (título, tema, códigos de condição e data no frontmatter).
 - [ ] Lista de artigos por tema, com os que combinam com as condições do perfil primeiro, e a tela de leitura.
+- [ ] Abas **Telefones** e **Artigos** na barra de abas, como no canvas.
 - [ ] Publicar conteúdo novo pelo EAS Update em `preview`: baixar quando possível e mostrar na abertura seguinte,
       sem esperar a atualização para abrir o app nem recarregar automaticamente.
 
@@ -242,7 +240,7 @@ real, integrações testadas e documentos legais publicados. Completar a passage
 
 | Fase | Dependência | Estado |
 | --- | --- | --- |
-| 1 | Períodos de pausa e de horários no `SyncModel`, e `DosesBetween` usando-os no resumo e nos avisos | O contrato guarda apenas a agenda e a pausa atuais |
+| 1 | Períodos de pausa e de horários no `SyncModel`, e `DosesBetween` usando-os no resumo e nos avisos | Feito; a migration `AddMedicationPeriods` ainda não rodou em nenhum ambiente hospedado |
 | 3 | API acessível pelo celular (hospedagem ou túnel) | Hospedagem não escolhida |
 | 3 | Credenciais do FCM e do APNs no EAS para o ping | A configurar |
 | 3 | Client IDs do Google e o bundle ID da Apple em `SocialLogin` | A configurar |

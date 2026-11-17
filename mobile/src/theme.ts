@@ -43,3 +43,12 @@ export const maxFontScale = { tab: 1.15, chip: 1.3 };
 export const stackedFontScale = 1.3;
 
 export const largeTextScale = 1.25;
+
+// The large-text mode also strengthens contrast: supporting text in ink and stronger borders.
+export const contrast = {
+  normal: { supportText: colors.graphite, border: colors.divider, borderWidth: 1 },
+  strong: { supportText: colors.ink, border: colors.outline, borderWidth: 2 },
+};
+
+// Touch targets in dp.
+export const touch = { minimum: 56, main: 64, gap: 16 };

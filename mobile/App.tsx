@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { ReminderTestScreen } from './src/features/reminders/ReminderTestScreen';
+import { AppNavigation } from './src/navigation';
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -19,7 +19,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      <ReminderTestScreen useBrandFont={fontsLoaded} />
+      <AppNavigation />
     </SafeAreaProvider>
   );
 }
