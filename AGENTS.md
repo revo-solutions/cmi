@@ -183,7 +183,7 @@ Backend:
 ```bash
 dotnet build
 dotnet test                                         # needs Docker: Testcontainers starts a postgres:17
-dotnet format --verify-no-changes --severity warn
+dotnet format --verify-no-changes --severity warn   # CI gate
 ```
 
 Running the API locally (Scalar at http://localhost:5090/scalar):
@@ -214,7 +214,8 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
   event), and the outbox processor as a hosted service. `OutboxProcessor` and the interceptor are wired, but nothing
   raises a domain event yet; host the processor together with the first handler.
 - Sync doesn't carry yet what the notices will need: the person's time zone and which medications the contact sees.
-- No Dockerfile or CI workflow yet; take both from TVP when deploying.
+- CI (`.github/workflows/ci.yml`) covers the back end only: format, build and tests. The app job comes with the Expo
+  project. No Dockerfile or deploy workflow yet; take them from TVP when deploying.
 - The Expo app doesn't exist yet.
 
 ## Commits

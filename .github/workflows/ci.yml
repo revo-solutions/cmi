@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore RevoSolutions.CMI.slnx
+
+      - name: Verify formatting
+        run: >-
+          dotnet format RevoSolutions.CMI.slnx
+          --verify-no-changes
+          --no-restore
+          --severity warn
+
+      - name: Build
+        run: dotnet build RevoSolutions.CMI.slnx --configuration Release --no-restore
+
+      # The API tests start a postgres:17 container through Testcontainers, on the runner's Docker.
+      - name: Test
+        run: >-
+          dotnet test RevoSolutions.CMI.slnx
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/**/*'
