@@ -1,4 +1,3 @@
-import { toByteArray } from 'base64-js';
 import { randomUUID } from 'expo-crypto';
 import { AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY, deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 import { useSyncExternalStore } from 'react';
@@ -7,7 +6,7 @@ import { ApiError } from '../api/client';
 import {
   accountDelete, authLogin, authLogout, authRefresh, syncDownload, type LoginProvider, type TokenResponse,
 } from '../api/generated/client';
-import { clearAccountData, hasPendingChanges, restoreAccountData } from './accountData';
+import { blockedAccountKey, clearAccountData, hasPendingChanges, restoreAccountData } from './accountData';
 import { getSetting, setSetting } from './db';
 
 const deviceKey = 'cmi.device';
@@ -88,9 +87,8 @@ async function saveSession(next: Session) {
 }
 
 function accountIdOf(accessToken: string) {
-  const payload = accessToken.split('.')[1];
-  const bytes = toByteArray(payload.padEnd(Math.ceil(payload.length / 4) * 4, '='));
-  const { sub } = JSON.parse(String.fromCharCode(...bytes)) as { sub?: unknown };
+  const payload = accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+  const { sub } = JSON.parse(atob(payload.padEnd(Math.ceil(payload.length / 4) * 4, '='))) as { sub?: unknown };
   if (typeof sub !== 'string' || !sub) {
     throw new Error('Resposta de sessão inválida.');
   }
@@ -127,10 +125,11 @@ export async function signIn(provider: LoginProvider, idToken: string, suggested
     const accountId = accountIdOf(tokens.accessToken);
     const sameAccount = previous?.accountId === accountId;
     const pending = await hasPendingChanges();
-    if (pending && !sameAccount) {
+    if (pending && previous && !sameAccount) {
       throw new PendingChangesError();
     }
-    if (!pending) {
+    // With no session, a queue can only come from a backup of another installation: the server's copy wins.
+    if (!pending || !sameAccount) {
       await restoreAccountData(await syncDownload(bearer(tokens.accessToken)));
     }
     await saveSession(withTokens(tokens, accountId, suggestedName ?? (sameAccount ? previous.suggestedName : null)));
@@ -206,9 +205,15 @@ async function closeAccount(remove: boolean) {
       throw new SessionRequiredError();
     }
     if (remove) {
-      await requestWithSession(accountDelete, true);
+      // A 404 is a deletion whose answer was lost: the account is already gone.
+      await requestWithSession(accountDelete, true).catch((error: unknown) => {
+        if (!(error instanceof ApiError) || error.status !== 404) {
+          throw error;
+        }
+      });
     } else {
-      if (await hasPendingChanges()) {
+      // A blocked phone can't send its queue, and taking the account back would discard it anyway.
+      if (await hasPendingChanges() && await getSetting(blockedAccountKey) !== current.accountId) {
         throw new PendingChangesError();
       }
       await authLogout({ refreshToken: current.refreshToken });

@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 
 import { ApiError, ApiUnavailableError } from '../api/client';
 import { accountDelete, authLogin, authLogout, authRefresh, syncDownload } from '../api/generated/client';
-import { clearAccountData, hasPendingChanges, restoreAccountData } from './accountData';
+import { blockedAccountKey, clearAccountData, hasPendingChanges, restoreAccountData } from './accountData';
 import { getSetting } from './db';
 
 const mockSecure = new Map<string, string>();
@@ -23,6 +23,7 @@ jest.mock('../api/generated/client', () => ({
   syncDownload: jest.fn(),
 }));
 jest.mock('./accountData', () => ({
+  blockedAccountKey: 'sync_blocked_account',
   clearAccountData: jest.fn(),
   hasPendingChanges: jest.fn(),
   restoreAccountData: jest.fn(),
@@ -47,7 +48,7 @@ beforeEach(() => {
   // The session state is module-local. Keep the same mock APIs while each test imports a fresh session.
   jest.doMock('../api/client', () => ({ ApiError, ApiUnavailableError }));
   jest.doMock('../api/generated/client', () => ({ accountDelete, authLogin, authLogout, authRefresh, syncDownload }));
-  jest.doMock('./accountData', () => ({ clearAccountData, hasPendingChanges, restoreAccountData }));
+  jest.doMock('./accountData', () => ({ blockedAccountKey, clearAccountData, hasPendingChanges, restoreAccountData }));
   jest.doMock('./db', () => ({ getSetting, setSetting: jest.fn() }));
   mockSecure.clear();
   mockSet.mockImplementation(async (key, value) => { mockSecure.set(key, value); });
@@ -117,6 +118,37 @@ test('leaves the outbox and session intact when logout would discard changes', a
   await expect(signOut()).rejects.toBeInstanceOf(PendingChangesError);
   expect(authLogout).not.toHaveBeenCalled();
   expect(clearAccountData).not.toHaveBeenCalled();
+  expect(await loadSession()).toMatchObject({ accountId: 'alice' });
+});
+
+test('signs out a blocked phone even with changes it can no longer send', async () => {
+  const { signOut, loadSession } = load();
+  jest.mocked(getSetting).mockImplementation(async (key) => (key === blockedAccountKey ? 'alice' : 'true'));
+  jest.mocked(hasPendingChanges).mockResolvedValueOnce(true);
+  await signOut();
+  expect(authLogout).toHaveBeenCalledWith({ refreshToken: 'old' });
+  expect(clearAccountData).toHaveBeenCalledTimes(1);
+  expect(await loadSession()).toBeNull();
+});
+
+test('treats a repeated deletion of a gone account as done', async () => {
+  const { deleteAccount, loadSession } = load();
+  jest.mocked(authRefresh).mockResolvedValueOnce({ accessToken: 'new', refreshToken: 'rotated', expiresIn: 900 });
+  jest.mocked(accountDelete).mockRejectedValueOnce(new ApiError(404));
+  await deleteAccount();
+  expect(clearAccountData).toHaveBeenCalledTimes(1);
+  expect(await loadSession()).toBeNull();
+});
+
+test('restores from the server when queued rows have no session behind them', async () => {
+  jest.mocked(authLogin).mockResolvedValueOnce({ accessToken: token, refreshToken: 'alice-refresh', expiresIn: 900 });
+  jest.mocked(hasPendingChanges).mockResolvedValueOnce(true);
+  const snapshot = { medications: [] };
+  jest.mocked(syncDownload).mockResolvedValueOnce(snapshot);
+  const { signIn, loadSession } = load();
+  mockSecure.delete('cmi.session');
+  await signIn('Google', 'provider', null);
+  expect(restoreAccountData).toHaveBeenCalledWith(snapshot);
   expect(await loadSession()).toMatchObject({ accountId: 'alice' });
 });
 

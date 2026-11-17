@@ -83,8 +83,8 @@ starting value: keep each one in a single setting.
 
 - React Native + Expo + TypeScript, for Android and iOS, built with EAS (development builds, not Expo Go). The main
   development device is Android; iOS is tested through TestFlight and published only after it has been tested on a
-  real iPhone. `src/features/<feature>` holds a feature's screens and logic, `src/components` the shared UI, `src/lib`
-  the API client and device helpers.
+  real iPhone. `src/features/<feature>` holds a feature's screens and logic, `src/components` the shared UI, `src/api`
+  the API client (generated, plus its fetch wrapper) and `src/lib` the session, sync and device helpers.
 - Colors, fonts and text sizes come from `src/theme.ts`; the brand rules behind them (logo use, contrast, how text
   grows with the system font) are in `docs/marca/README.md`. Above `stackedFontScale`, side-by-side layouts stack:
   screens scroll only vertically. The app's large-text mode (`largeTextScale`, plus the stronger contrast in the brand
@@ -130,6 +130,7 @@ starting value: keep each one in a single setting.
   ID if both phones recorded the same dose. It discards the other queued changes and restores the account from
   the server; the screen warns first. A dose recorded during recovery stays in the queue if its medication exists
   on the server. Restoring the server's copy keeps a contact removed on the other phone from coming back.
+  "Sair" waits for the queue to be sent, except on a blocked phone, whose queue taking the account back would discard.
 - Login uses `@react-native-google-signin/google-signin` and `expo-apple-authentication`; the app exchanges the
   provider's token for the API's JWT and refresh token, kept in the system's secure storage.
   The app opens a stored session offline and serializes token rotation. First sign-in restores the account in one
@@ -396,9 +397,11 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
   image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum of one replica, as in
   TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The
   rollout step, applying the migrations and the daily backup come with that choice.
-- The Expo app has the medication flow on the device only: tabs **Hoje** and **Remédios**, the form, the history,
-  the reminder screen and the reminders (`src/lib/reminders.ts`); nothing reaches the server until the outgoing queue
-  and login exist. Add the other tabs as their features become usable. A phone that ran the old reminder test needs
+- The Expo app has social login, the account sessions, sync through the outgoing queue, the heartbeat and the ping,
+  and the medication flow: tabs **Hoje** and **Remédios**, the form, the history, the reminder screen and the
+  reminders (`src/lib/reminders.ts`). OAuth, FCM and APNs still have to be set up and the flow validated on real
+  phones (`mobile/README.md`). A `POST sync` refused with 400 holds up the queue: it is retried, never dropped, and
+  only the card on **Hoje** shows it. Add the other tabs as their features become usable. A phone that ran the old reminder test needs
   the app reinstalled to drop its leftover test notifications. Validate the reminders on Android and a real iPhone
   before calling the flow done. `react-native-screens` is native, so running the navigation needs a development or
   preview build made after it was added.

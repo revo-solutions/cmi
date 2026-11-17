@@ -44,7 +44,11 @@ export function SyncStatusCard() {
   return (
     <Card accessibilityLiveRegion="polite" accessibilityState={{ busy: retrying }}>
       <AppText bold>{pending.last_error === 'server' ? 'Não foi possível sincronizar' : 'Envio pendente'}</AppText>
-      <AppText>Suas alterações estão salvas neste celular e serão enviadas quando a conexão voltar.</AppText>
+      <AppText>
+        {pending.last_error === 'server'
+          ? 'Suas alterações estão salvas neste celular. Vamos tentar enviar de novo.'
+          : 'Suas alterações estão salvas neste celular e serão enviadas quando a conexão voltar.'}
+      </AppText>
       <Button label="Tentar sincronizar" variant="secondary" disabled={retrying} onPress={() => {
         setRetrying(true);
         void requestSync(true).finally(() => setRetrying(false));

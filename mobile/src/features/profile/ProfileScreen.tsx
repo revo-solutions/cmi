@@ -11,6 +11,7 @@ import { Screen } from '../../components/Screen';
 import { YesNo } from '../../components/YesNo';
 import { useDisplayMode } from '../../lib/displayMode';
 import { deleteAccount, PendingChangesError, signOut } from '../../lib/session';
+import { requestSync } from '../../lib/sync';
 import { forgetGoogleSignIn } from '../auth/socialLogin';
 
 export function ProfileScreen() {
@@ -34,7 +35,8 @@ export function ProfileScreen() {
       if (error instanceof ApiUnavailableError) {
         setMessage('Sem conexão. Confira sua internet e tente novamente.');
       } else if (error instanceof PendingChangesError) {
-        setMessage('Aguarde o envio dos registros pendentes antes de sair.');
+        void requestSync(true);
+        setMessage('Há registros ainda não enviados. Conecte-se à internet e tente sair de novo daqui a pouco.');
       } else {
         setMessage(remove ? 'Não foi possível excluir sua conta. Tente novamente.' : 'Não foi possível sair. Tente novamente.');
       }
@@ -61,6 +63,8 @@ export function ProfileScreen() {
         />
         <AppText variant="support">Vale só para este celular e soma com o tamanho de letra do sistema.</AppText>
       </Card>
+
+      {/* Xiaomi, Samsung and Motorola close apps to save battery (docs/arquitetura.md, "Pontos de atenção no Android"). */}
       {Platform.OS === 'android' && (
         <Card>
           <AppText variant="title" accessibilityRole="header">Para os lembretes tocarem na hora</AppText>

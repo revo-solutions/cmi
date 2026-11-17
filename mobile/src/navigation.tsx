@@ -3,7 +3,7 @@ import { createNavigationContainerRef, createStaticNavigation, type StaticParamL
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { House, Pill, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 
 import { AppText } from './components/AppText';
 import { Button } from './components/Button';
@@ -97,8 +97,15 @@ function AccountNavigation({ accountId }: { accountId: string }) {
       .then(reconcileReminders)
       .catch((error: unknown) => console.warn('Não foi possível preparar os lembretes.', error));
     const unsubscribe = onReminderOpened(({ medicationId, date, time }) => openReminder({ medicationId, date, time }));
+    // Coming back from the system settings may have just allowed the notifications.
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        reconcileReminders().catch((error: unknown) => console.warn('Não foi possível preparar os lembretes.', error));
+      }
+    });
     return () => {
       unsubscribe();
+      appState.remove();
       waiting = null;
     };
   }, []);

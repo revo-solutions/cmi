@@ -46,13 +46,14 @@ export function DeviceConflictScreen() {
   return (
     <Screen title="Sua conta foi aberta em outro celular">
       <Card accessibilityState={{ busy }}>
-        <AppText>Seus registros ficam salvos neste aparelho enquanto a sincronização estiver pausada.</AppText>
+        <AppText>Você entrou na sua conta em outro celular, e este aqui parou de enviar seus registros.</AppText>
         <AppText>
-          Ao usar a conta neste celular, vamos baixar os dados salvos no servidor e enviar os registros pendentes
-          de doses dos remédios que já estavam sincronizados.
+          Se é este o celular que você usa, toque em Usar neste celular: o outro é que vai parar de enviar. Seus
+          remédios voltam como estão na conta, e as doses marcadas aqui são mantidas.
         </AppText>
         <AppText>
-          Edições que ainda não foram enviadas e doses de remédios cadastrados só neste aparelho serão descartadas.
+          Mudanças em remédios feitas aqui e ainda não enviadas serão perdidas. Se você usa o outro celular, toque em
+          Continuar sem sincronizar.
         </AppText>
         <Button label="Usar neste celular" onPress={() => void activate()} disabled={busy} />
         <Button label="Continuar sem sincronizar" variant="secondary" onPress={() => navigation.goBack()} disabled={busy} />

@@ -27,7 +27,7 @@ export const retryStartMs = 15_000;
 const retryLimitMs = 5 * 60_000;
 
 export async function enqueue<K extends keyof Changes>(db: SQLiteDatabase, type: K, change: Changes[K]) {
-  await db.runAsync('INSERT INTO outbox (type, payload, created_at) VALUES (?, ?, ?)', type, JSON.stringify(change), change.updatedAt);
+  await db.runAsync('INSERT INTO outbox (type, payload, created_at) VALUES (?, ?, ?)', type, JSON.stringify(change), new Date().toISOString());
 }
 
 export function nextAttempt(attempts: number, now: number) {

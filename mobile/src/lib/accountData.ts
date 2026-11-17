@@ -40,8 +40,9 @@ export async function clearAccountData() {
   await writeTransaction(clearRows);
 }
 
+// Without keepDosesAfter the account may be another one, so its notifications go too. Taking the account back keeps
+// them: reconcileReminders follows, and snoozes stay.
 export async function restoreAccountData(snapshot: SyncModel, keepDosesAfter?: number) {
-  await clearNotifications();
   await writeTransaction(async (transaction) => {
     const newer = keepDosesAfter === undefined ? [] : await transaction.getAllAsync<OutboxRow>(
       'SELECT * FROM outbox WHERE id > ? AND type = ? ORDER BY id', keepDosesAfter, 'doseRecords',
@@ -70,10 +71,14 @@ export async function restoreAccountData(snapshot: SyncModel, keepDosesAfter?: n
       `, period.id, period.medicationId, period.startsAt, JSON.stringify(period.times.map(wallTime)),
       period.paused, period.updatedAt);
     }
+    // The server has no unique dose key, so two phones may have stored the same dose: the newer one wins.
     for (const dose of snapshot.doseRecords ?? []) {
       await transaction.runAsync(`
         INSERT INTO dose_records (id, medication_id, scheduled_date, scheduled_time, taken_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT (medication_id, scheduled_date, scheduled_time)
+        DO UPDATE SET id = excluded.id, taken_at = excluded.taken_at, updated_at = excluded.updated_at
+        WHERE excluded.updated_at > dose_records.updated_at
       `, dose.id, dose.medicationId, dose.scheduledDate, wallTime(dose.scheduledTime), dose.takenAt, dose.updatedAt);
     }
     for (const dose of recoverableDoses(newer, snapshot)) {
@@ -93,6 +98,9 @@ export async function restoreAccountData(snapshot: SyncModel, keepDosesAfter?: n
       }
     }
   });
+  if (keepDosesAfter === undefined) {
+    await clearNotifications();
+  }
 }
 
 function wallTime(time: string) {

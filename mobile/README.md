@@ -17,7 +17,7 @@ O app está vinculado ao [projeto da organização revosolutions no Expo](https:
 Mudanças de JavaScript e de conteúdo chegam aos builds instalados pelo EAS Update, sem nova versão na loja. O app baixa a atualização ao abrir e a aplica na abertura seguinte.
 
 ```sh
-npx eas-cli@latest update --channel preview --message "o que mudou"
+npx eas-cli@latest update --channel preview --environment preview --message "o que mudou"
 ```
 
 Cada update vai só para os builds com o mesmo runtime, calculado pelo fingerprint da parte nativa. Depois de adicionar uma dependência nativa ou mudar `app.json`, gere um build novo: os builds antigos continuam com os updates do runtime deles.
