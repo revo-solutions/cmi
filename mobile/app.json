@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Central Melhor Idade",
+    "slug": "central-melhor-idade",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.revosolutions.cmi",
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
+      }
+    },
+    "android": {
+      "package": "com.revosolutions.cmi",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#7E3369",
+          "enableRemoteNotifications": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f2583739-19d1-4d18-9c84-eea93de131ed"
+      }
+    },
+    "owner": "revosolutions"
+  }
+}

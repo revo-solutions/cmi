@@ -6,10 +6,9 @@ installs the app. Single-maintainer project. React Native + Expo in `mobile/`; a
 on the same simplified DDD modular monolith as RevoSolutions.TVP. What the MVP includes and what comes after it:
 `docs/escopo.md`. The stack and the reasons behind it: `docs/arquitetura.md`.
 
-The back-end solution exists (`RevoSolutions.CMI.slnx`) with `Anticorruption.WhatsApp`; the Expo app and the other
-`Anticorruption.*` projects don't yet.
-Create them as the work needs them, following this file, and update it when a decision here changes or a new one is
-made.
+The back-end solution is `RevoSolutions.CMI.slnx`, with `Anticorruption.WhatsApp` and `Anticorruption.RevenueCat`;
+the Expo app starts in `mobile/`. Create `Anticorruption.ExpoPush` as the work needs it, following this file, and
+update it when a decision here changes or a new one is made.
 
 ## Guiding rule: less is more
 
@@ -84,6 +83,10 @@ starting value: keep each one in a single setting.
   development device is Android; iOS is tested through TestFlight and published only after it has been tested on a
   real iPhone. `src/features/<feature>` holds a feature's screens and logic, `src/components` the shared UI, `src/lib`
   the API client and device helpers.
+- Reuse the installed development client with Metro for TypeScript and UI changes. Rebuild it to test changes to
+  native dependencies or configuration. Batch changes for standalone preview builds when testing without Metro,
+  such as offline reminders with the app closed. EAS keeps and increments the build numbers (`appVersionSource`
+  remote); don't set `versionCode` or `buildNumber` in `app.json`.
 - Reminders use `expo-notifications` (daily repeating triggers, "Tomei" and "Lembrar depois" actions) and
   `expo-background-task` (the outgoing queue and the heartbeat), behind one TypeScript interface. Prefer Expo modules
   over bare native code; own Kotlin or Swift code goes behind that same interface, and only when tests on real devices
@@ -266,10 +269,12 @@ After a model change: `dotnet ef migrations add <Name> --project src/RevoSolutio
 --startup-project src/RevoSolutions.CMI.API --output-dir Migrations`. `dotnet tool restore` installs `dotnet-ef`.
 Real logins need `SocialLogin:GoogleClientIds` / `SocialLogin:AppleClientIds` in user secrets; the tests don't.
 
-Mobile, from `mobile/`, once the Expo project exists:
+Mobile, from `mobile/`:
 
 ```bash
-npx expo start
+npm ci
+npx expo start --dev-client
+npx expo lint                                       # CI gate, with tsc
 npx tsc --noEmit
 ```
 
@@ -286,9 +291,10 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - WhatsApp delivery statuses are only logged when they fail; storing them comes with SOS, whose status the app shows.
 - The six templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - A failing outbox message is retried every 5 seconds forever, as in TVP; add a limit if one ever gets stuck.
-- CI (`.github/workflows/ci.yml`) covers the back end only: format, build and tests. The app job comes with the Expo
-  project. No Dockerfile or deploy workflow yet; take them from TVP when deploying.
-- The Expo app doesn't exist yet.
+- CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). No Dockerfile
+  or deploy workflow yet; take them from TVP when deploying.
+- The Expo app has only a local reminder test. Validate it on Android and a real iPhone with a bundled preview build
+  before building the medication screens. See `mobile/README.md`.
 
 ## Commits
 
