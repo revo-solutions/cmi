@@ -6,5 +6,6 @@ public record MedicationModel(
     string? Dose,
     IReadOnlyList<TimeOnly> Times,
     bool Paused,
+    bool SharedWithContact,
     bool Deleted,
     DateTimeOffset UpdatedAt);

@@ -14,6 +14,9 @@ public class Medication : SyncedEntityBase
 
     public bool Paused { get; set; }
 
+    // Whether the trusted contact hears about this medication; one they never see unless it is set.
+    public bool SharedWithContact { get; set; }
+
     // Kept as a tombstone: the dose history still points at it.
     public bool Deleted { get; set; }
 
@@ -31,6 +34,7 @@ public class Medication : SyncedEntityBase
         Dose = model.Dose;
         Times = model.Times.ToList();
         Paused = model.Paused;
+        SharedWithContact = model.SharedWithContact;
         Deleted = model.Deleted;
         UpdatedAt = model.UpdatedAt.UtcDateTime;
     }

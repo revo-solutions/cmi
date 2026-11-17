@@ -50,9 +50,18 @@ public class SyncService
         };
     }
 
+    public async Task Heartbeat(HeartbeatModel heartbeat)
+    {
+        var account = await ActiveAccount();
+        account.RecordHeartbeat(heartbeat);
+
+        await _unitOfWork.CommitAsync();
+    }
+
     public async Task Upload(SyncModel changes)
     {
         var account = await ActiveAccount();
+        account.MarkSeen();
 
         if (changes.Profile is { } profile && account.IsProfileOlderThan(profile.UpdatedAt))
         {
@@ -104,6 +113,7 @@ public class SyncService
                 if (change.Deleted)
                 {
                     _contacts.Remove(contact);
+                    await StopSharing(account.Id);
                 }
                 else
                 {
@@ -145,6 +155,16 @@ public class SyncService
         if (found.Count != idArray.Length)
         {
             throw new DomainException("A dose record refers to a medication that was never synced.");
+        }
+    }
+
+    // Revoking the contact revokes what was shared with them, so a new contact starts seeing nothing. The device's
+    // UpdatedAt is left alone: the device makes the same change and syncs it.
+    private async Task StopSharing(Guid accountId)
+    {
+        foreach (var medication in await _medications.Get(m => m.AccountId == accountId && m.SharedWithContact))
+        {
+            medication.SharedWithContact = false;
         }
     }
 

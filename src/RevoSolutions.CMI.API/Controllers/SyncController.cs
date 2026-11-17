@@ -5,7 +5,7 @@ using RevoSolutions.CMI.Domain.Services;
 
 namespace RevoSolutions.CMI.API.Controllers;
 
-// Both actions answer 409 to a device that is no longer the account's active one.
+// Every action answers 409 to a device that is no longer the account's active one.
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/sync")]
@@ -27,6 +27,15 @@ public class SyncController : ControllerBase
     public async Task<NoContentResult> Upload(SyncModel changes)
     {
         await _syncService.Upload(changes);
+
+        return NoContent();
+    }
+
+    // The device's sign of life, with its platform, time zone and push token. An upload also counts as contact.
+    [HttpPost("heartbeat")]
+    public async Task<NoContentResult> Heartbeat(HeartbeatModel heartbeat)
+    {
+        await _syncService.Heartbeat(heartbeat);
 
         return NoContent();
     }

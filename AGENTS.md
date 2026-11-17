@@ -148,6 +148,13 @@ syncs as a whole, by `ProfileUpdatedAt`. A deleted medication stays as a tombsto
 point at it; a deleted contact is removed from the server. A dose record never changes which dose it is (medication,
 scheduled date and time, all wall-clock); only `TakenAt` changes, and undoing "Tomei" clears it.
 
+A medication reaches the contact only with `SharedWithContact`; removing the contact clears it on every medication.
+
+`POST sync/heartbeat` is the sign of life: the app sends it on opening and periodically in the background, with the
+platform, the IANA time zone and the Expo push token, which are kept on the `Account` row (one active device). Login,
+an upload and a heartbeat set `Account.LastSeenAt` from the server's clock; that is the "contact" the notice rules read.
+A new active device clears the push token until its own heartbeat arrives.
+
 ### Notices: worker and outbox
 
 Every family notice goes through the outbox. App events ("Tomei", SOS, heartbeat) and the worker's time-based checks
@@ -209,11 +216,10 @@ npx tsc --noEmit
 
 What the MVP includes and what comes after it: `docs/escopo.md`.
 
-- The back end has login, refresh, logout, the active device, account deletion, the profile and sync. Not yet: the
-  WhatsApp, ExpoPush and RevenueCat projects, the per-minute worker, the heartbeat and events (SOS, "Tomei" as an
-  event), and the outbox processor as a hosted service. `OutboxProcessor` and the interceptor are wired, but nothing
-  raises a domain event yet; host the processor together with the first handler.
-- Sync doesn't carry yet what the notices will need: the person's time zone and which medications the contact sees.
+- The back end has login, refresh, logout, the active device, account deletion, the profile, sync and the heartbeat.
+  Not yet: the WhatsApp, ExpoPush and RevenueCat projects, the per-minute worker, SOS, and the outbox processor as a
+  hosted service. `OutboxProcessor` and the interceptor are wired, but nothing raises a domain event yet; host the
+  processor together with the first handler.
 - CI (`.github/workflows/ci.yml`) covers the back end only: format, build and tests. The app job comes with the Expo
   project. No Dockerfile or deploy workflow yet; take them from TVP when deploying.
 - The Expo app doesn't exist yet.

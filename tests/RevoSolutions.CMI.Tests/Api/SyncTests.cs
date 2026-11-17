@@ -90,6 +90,18 @@ public class SyncTests
     }
 
     [Fact]
+    public async Task Removing_the_contact_stops_sharing_every_medication()
+    {
+        var phone = await _factory.SignedInClient(CmiApiFactory.NewSubject(), Guid.NewGuid());
+        var contact = Contact(Start);
+        await Upload(phone, new SyncModel { Medications = [Medication(Start)], Contacts = [contact] });
+
+        await Upload(phone, new SyncModel { Contacts = [contact with { Deleted = true, UpdatedAt = Start.AddMinutes(1) }] });
+
+        (await Download(phone)).Medications.Single().SharedWithContact.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Another_accounts_record_cannot_be_overwritten()
     {
         var owner = await _factory.SignedInClient(CmiApiFactory.NewSubject(), Guid.NewGuid());
@@ -133,7 +145,7 @@ public class SyncTests
     }
 
     private static MedicationModel Medication(DateTimeOffset updatedAt) =>
-        new(Guid.NewGuid(), "Losartana", "50 mg, 1 comprimido", [new TimeOnly(8, 0), new TimeOnly(20, 0)], false, false, updatedAt);
+        new(Guid.NewGuid(), "Losartana", "50 mg, 1 comprimido", [new TimeOnly(8, 0), new TimeOnly(20, 0)], false, true, false, updatedAt);
 
     private static DoseRecordModel Dose(Guid medicationId, DateTimeOffset? takenAt, DateTimeOffset updatedAt) =>
         new(Guid.NewGuid(), medicationId, new DateOnly(2026, 11, 16), new TimeOnly(8, 0), takenAt, updatedAt);

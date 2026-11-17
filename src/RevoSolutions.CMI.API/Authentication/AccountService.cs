@@ -53,7 +53,7 @@ public class AccountService
         else
         {
             account.Email = identity.Email ?? account.Email;
-            account.ActiveDeviceId = deviceId;
+            account.ActivateDevice(deviceId);
         }
 
         return await IssueTokens(account.Id, deviceId);
@@ -100,7 +100,7 @@ public class AccountService
     public async Task ActivateDevice(Guid accountId, Guid deviceId)
     {
         var account = await FindAccount(accountId);
-        account.ActiveDeviceId = deviceId;
+        account.ActivateDevice(deviceId);
 
         await _dbContext.SaveChangesAsync();
     }

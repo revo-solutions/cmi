@@ -67,7 +67,7 @@ public class AuthenticationTests
         var subject = CmiApiFactory.NewSubject();
         var tokens = await _factory.Login(subject, Guid.NewGuid());
         var client = _factory.Client(tokens);
-        var medication = new MedicationModel(Guid.NewGuid(), "Losartana", "50 mg", [new TimeOnly(8, 0)], false, false, DateTimeOffset.UtcNow);
+        var medication = new MedicationModel(Guid.NewGuid(), "Losartana", "50 mg", [new TimeOnly(8, 0)], false, true, false, DateTimeOffset.UtcNow);
         var changes = new SyncModel
         {
             Medications = [medication],

@@ -120,12 +120,19 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<bool?>("FellLastYear")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool?>("LivesAlone")
                         .HasColumnType("boolean");
 
                     b.Property<string>("OtherCondition")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Platform")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("ProfileUpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -135,10 +142,18 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("PushToken")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<string>("TimeZone")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<bool?>("VisionDifficulty")
                         .HasColumnType("boolean");
@@ -246,6 +261,9 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<bool>("Paused")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SharedWithContact")
                         .HasColumnType("boolean");
 
                     b.PrimitiveCollection<List<TimeOnly>>("Times")

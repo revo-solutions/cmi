@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using RevoSolutions.CMI.API.Authentication;
 using RevoSolutions.CMI.API.Models;
 using RevoSolutions.CMI.Data.PostgreSql.Contexts;
+using RevoSolutions.CMI.Domain.Entities;
 using RevoSolutions.CMI.Domain.Enumerators;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -60,6 +61,16 @@ public sealed class CmiApiFactory : WebApplicationFactory<RevoSolutions.CMI.API.
     }
 
     public async Task<HttpClient> SignedInClient(string subject, Guid deviceId) => Client(await Login(subject, deviceId));
+
+    // For what the API stores but never sends back, such as the device's facts.
+    public async Task<Account> StoredAccount(string subject)
+    {
+        using var scope = Services.CreateScope();
+
+        return await scope.ServiceProvider.GetRequiredService<CmiDbContext>().Accounts
+            .AsNoTracking()
+            .SingleAsync(a => a.Subject == subject);
+    }
 
     async Task IAsyncLifetime.DisposeAsync()
     {
