@@ -3,6 +3,9 @@
     "name": "Central Melhor Idade",
     "slug": "central-melhor-idade",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -10,6 +13,9 @@
       "android",
       "ios"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/f2583739-19d1-4d18-9c84-eea93de131ed"
+    },
     "ios": {
       "bundleIdentifier": "com.revosolutions.cmi",
       "entitlements": {

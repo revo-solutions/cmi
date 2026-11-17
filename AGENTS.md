@@ -90,10 +90,15 @@ starting value: keep each one in a single setting.
   native dependencies or configuration. Batch changes for standalone preview builds when testing without Metro,
   such as offline reminders with the app closed. EAS keeps and increments the build numbers (`appVersionSource`
   remote); don't set `versionCode` or `buildNumber` in `app.json`.
+- JavaScript and content changes reach installed apps through EAS Update (`expo-updates`), with no store release. The
+  runtime version is the `fingerprint` policy: a change to native dependencies or configuration gives a new runtime,
+  which only a new build carries, so an update never reaches a build it doesn't fit. The fingerprint hashes files
+  such as `mobile/.gitignore`, which is why `.gitattributes` keeps `mobile/` in LF. An update downloads when the app
+  opens and applies at the next open; never make the app wait for it or reload by itself.
 - Reminders use `expo-notifications` (daily repeating triggers, "Tomei" and "Lembrar depois" actions) and
-  `expo-background-task` (the outgoing queue and the heartbeat), behind one TypeScript interface. Prefer Expo modules
-  over bare native code; own Kotlin or Swift code goes behind that same interface, and only when tests on real devices
-  prove the gain. Leaving the managed workflow needs a reason written here.
+  `expo-background-task` (the outgoing queue, the heartbeat and downloading updates), behind one TypeScript
+  interface. Prefer Expo modules over bare native code; own Kotlin or Swift code goes behind that same interface, and
+  only when tests on real devices prove the gain. Leaving the managed workflow needs a reason written here.
 - The server's ping (see "Push") is a data-only push, `{ "type": "ping" }` with no title or body, so nothing shows.
   The app answers it with a heartbeat from a background notification task (`expo-task-manager`; on iOS the
   `expo-notifications` plugin's `enableBackgroundRemoteNotifications`).

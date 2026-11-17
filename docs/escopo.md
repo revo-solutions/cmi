@@ -66,7 +66,7 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 - Oferecer uma seleção inicial de artigos curtos, organizados por tema e fáceis de ler no celular. Cada artigo tem etiquetas por condição de saúde, e a tela mostra primeiro os que combinam com o perfil da pessoa.
 - Publicar a seleção inicial de telefones e artigos junto com o aplicativo. O conteúdo funciona sem internet.
 - **Telefones iniciais.** Os números nacionais: 192 (SAMU), 193 (Bombeiros), 190 (Polícia), 199 (Defesa Civil), Disque 100 (Direitos Humanos, que recebe denúncias de violência contra a pessoa idosa), 136 (Disque Saúde) e 188 (CVV). Números locais ficam para quando houver telefones por cidade.
-- **Sem interface de administração no MVP.** O próprio desenvolvedor escreve e publica o conteúdo como arquivos no repositório: um Markdown por artigo (com título, tema, condições de saúde e data) e um JSON de telefones (com categoria, nome, número e se é de emergência). Os textos da divulgação do Premium seguem o mesmo caminho. Para publicar, uma atualização pelo ar (EAS Update) leva o conteúdo novo aos aparelhos em minutos, sem passar pela revisão das lojas.
+- **Sem interface de administração no MVP.** O próprio desenvolvedor escreve e publica o conteúdo como arquivos no repositório: um Markdown por artigo (com título, tema, condições de saúde e data) e um JSON de telefones (com categoria, nome, número e se é de emergência). Os textos da divulgação do Premium seguem o mesmo caminho. Para publicar, uma atualização pelo ar (EAS Update) leva o conteúdo novo aos aparelhos sem passar pela revisão das lojas: o app baixa a atualização ao abrir ou em segundo plano e a mostra na abertura seguinte.
 
 ### Acessibilidade
 

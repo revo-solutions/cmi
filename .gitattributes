@@ -61,3 +61,7 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# The fingerprint that picks an app's runtime version hashes files such as mobile/.gitignore, so line endings
+# must not depend on the machine that checked them out.
+mobile/** text=auto eol=lf
