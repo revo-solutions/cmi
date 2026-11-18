@@ -105,8 +105,7 @@ export function DoseRow({ dose, last, action }: { dose: Dose; last: boolean; act
         <View style={styles.rowText}>
           <AppText>{dose.medication.dose ? `${dose.medication.name} ${dose.medication.dose}` : dose.medication.name}</AppText>
           <StatusChip status={dose.state} label={label} />
-          {/* Always below the state, never beside it, so it doesn't move with the chip's width. */}
-          {action && <View style={!stacked && styles.action}>{action}</View>}
+          {action}
         </View>
       </View>
     </View>
@@ -146,13 +145,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   time: {
-    width: 64,
+    minWidth: 64,
   },
   rowText: {
     flex: 1,
     gap: 8,
-  },
-  action: {
-    alignSelf: 'flex-start',
   },
 });
