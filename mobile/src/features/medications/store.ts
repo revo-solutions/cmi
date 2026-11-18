@@ -67,6 +67,10 @@ export function useDoseRecords(date: string) {
   return useRows<DoseRecordRow>(recordsSql, [date])?.map(toRecord);
 }
 
+export function useDoseRecordsSince(date: string) {
+  return useRows<DoseRecordRow>('SELECT * FROM dose_records WHERE scheduled_date >= ?', [date])?.map(toRecord);
+}
+
 export type MedicationInput = {
   name: string;
   dose: string | null;

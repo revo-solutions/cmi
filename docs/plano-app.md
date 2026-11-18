@@ -199,7 +199,8 @@ Protótipo antes: a tela do Premium, que pesa na conversão e passa pela revisã
       Premium libera. Exibir o preço retornado pela loja, a elegibilidade para o teste e o que será cobrado.
       Tratar cancelamento e erro da compra, inclusive para quem não cadastrou contato.
 - [ ] O app lê o entitlement só para mostrar o que está liberado: vínculo, SOS pelo WhatsApp e relatório em PDF.
-      Sem o entitlement, a tela **SOS** não cria o pedido pelo WhatsApp.
+      Sem o entitlement, a tela **SOS** não cria o pedido pelo WhatsApp, e o **Relatório para a consulta** troca o
+      botão do PDF pela oferta do Premium (até lá, o PDF fica liberado).
       Tratar estado pendente, offline e expirado. O servidor libera envios só após o webhook. Expirar a assinatura
       pausa os envios e mantém o vínculo para uma futura reativação.
 - [ ] Notificação local dois dias antes do fim do teste, com a data e o valor da primeira cobrança, a partir da
@@ -215,13 +216,15 @@ expiração e nova assinatura em sandbox. Conferir que os envios retomam sem nov
 
 Sem protótipo no canvas: o PDF já é HTML para o `expo-print`, então ele é iterado direto no código.
 
-- [ ] Lista de remédios em uso (grátis): nome, dose e horários, na tela e para compartilhar.
-- [ ] Resumo do período no grátis ("Você registrou 91% das doses nos últimos 30 dias"), com a oferta do Premium.
-- [ ] PDF de regularidade (Premium), de 30, 60 ou 90 dias, montado em HTML a partir do SQLite, gerado pelo
+- [x] Lista de remédios em uso (grátis): nome, dose e horários, na tela e para compartilhar em PDF.
+- [x] Resumo do período no grátis ("Você registrou 91% das doses nos últimos 30 dias"). A oferta do Premium entra
+      com a fase 6.
+- [x] PDF de regularidade (Premium), de 30, 60 ou 90 dias, montado em HTML a partir do SQLite, gerado pelo
       `expo-print` e compartilhado pelo `expo-sharing`: remédios com dose e horários; por remédio, as registradas (82
       de 90), as sem confirmação e o atraso típico; a grade de dias × doses com as pausas marcadas como pausadas; o
-      rodapé obrigatório. Sem alegações clínicas.
-- [ ] Testes do cálculo: doses esperadas por dia (com as pausas e as mudanças de horário), contagens e atraso típico.
+      rodapé obrigatório. Sem alegações clínicas. Tela **Relatório para a consulta**, aberta pela **Remédios**
+      (`features/report`).
+- [x] Testes do cálculo: doses esperadas por dia (com as pausas e as mudanças de horário), contagens e atraso típico.
 
 **Aceite:** gerar e compartilhar o PDF offline. Comparar com o histórico após pausa, alteração de horário, remédio
 removido e dose corrigida; repetir após troca de celular. Conferir paginação e o estado do resumo sem doses previstas.

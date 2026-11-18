@@ -27,6 +27,7 @@ import {
   askHealthLater, firstSetupStep, saveSetupStep, SetupContext, useNeedsSetup, useSetupDone, useStoredSetupStep,
   type SetupStep,
 } from './features/setup/setup';
+import { ReportScreen } from './features/report/ReportScreen';
 import { SetupScreen } from './features/setup/SetupScreen';
 import { SosScreen } from './features/sos/SosScreen';
 import { TodayScreen } from './features/today/TodayScreen';
@@ -90,6 +91,7 @@ const RootStack = createNativeStackNavigator({
         Contact: ContactScreen,
         WhatsAppLink: WhatsAppLinkScreen,
         Sos: SosScreen,
+        Report: ReportScreen,
         Article: ArticleScreen,
       },
     },

@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { EyeOff, Plus } from 'lucide-react-native';
+import { EyeOff, FileText, Plus } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../../components/AppText';
@@ -19,6 +19,9 @@ export function MedicationsScreen() {
   return (
     <Screen title="Remédios" onProfile={() => navigation.navigate('Profile')}>
       <Button label="Adicionar remédio" icon={Plus} onPress={() => navigation.navigate('MedicationForm', {})} />
+      {medications && medications.length > 0 && (
+        <Button label="Relatório para a consulta" variant="secondary" icon={FileText} onPress={() => navigation.navigate('Report')} />
+      )}
 
       {medications?.length === 0 && (
         <Card>

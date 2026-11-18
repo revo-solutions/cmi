@@ -412,7 +412,9 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - The Expo app has social login, the account sessions, sync through the outgoing queue, the heartbeat and the ping,
   the first-run setup with the profile and the health questionnaire, and the medication flow: tabs **Hoje** and
   **Remédios**, the form, the history, the reminder screen and the reminders (`src/lib/reminders.ts`). **Telefones**
-  (the trusted contact on top, then the numbers by category) and **Artigos** read `src/content.ts`. OAuth, FCM
+  (the trusted contact on top, then the numbers by category) and **Artigos** read `src/content.ts`. **Relatório para
+  a consulta** (`features/report`), opened from **Remédios**, builds the list and the regularity PDF on the device;
+  `expo-print` and `expo-sharing` are native, so it needs a new build. OAuth, FCM
   and APNs still have to be set up and the flow validated on real phones (`mobile/README.md`). A `POST sync` refused
   with 400 holds up the queue: it is retried, never dropped, and only the card on **Hoje** shows it. Setup gets the
   contact step with phase 5. A phone that ran the old reminder
