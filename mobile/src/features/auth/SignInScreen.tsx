@@ -1,12 +1,13 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useEffect, useRef, useState } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiError, ApiUnavailableError, apiUrl } from '../../api/client';
 import { LoginProvider } from '../../api/generated/client';
 import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
+import { Logo } from '../../components/Logo';
 import { useDisplayMode } from '../../lib/displayMode';
 import { PendingChangesError, signIn, signInDev, useSession } from '../../lib/session';
 import { colors, touch } from '../../theme';
@@ -69,8 +70,7 @@ export function SignInScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.intro}>
-          <Image source={require('../../../assets/icon.png')} accessible accessibilityLabel="Central Melhor Idade"
-            accessibilityRole="image" style={styles.logo} />
+          <Logo width={216} />
           <AppText variant="screen" accessibilityRole="header" style={styles.center}>
             Seus remédios na hora certa, e sua família por perto.
           </AppText>
@@ -109,7 +109,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.white },
   container: { flexGrow: 1, justifyContent: 'space-between', padding: 24, gap: 32, width: '100%', maxWidth: 480, alignSelf: 'center' },
   intro: { alignItems: 'center', gap: 20, paddingTop: 24 },
-  logo: { width: 136, height: 136, resizeMode: 'contain' },
   center: { textAlign: 'center' },
   actions: { gap: 16 },
 });

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDisplayMode } from '../lib/displayMode';
 import { colors, touch } from '../theme';
 import { AppText } from './AppText';
+import { LogoSymbol } from './Logo';
 
 type ScreenProps = {
   title: string;
@@ -35,6 +36,7 @@ export function Screen({ title, subtitle, onProfile, onBack, children }: ScreenP
           </Pressable>
         )}
         <View style={styles.header}>
+          {onProfile && <LogoSymbol size={44} />}
           <View style={styles.titles}>
             {subtitle && <AppText variant="support">{subtitle}</AppText>}
             <AppText variant="screen" accessibilityRole="header">
