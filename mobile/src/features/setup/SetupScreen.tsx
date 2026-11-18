@@ -1,12 +1,13 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { BellRing, Plus } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, BackHandler, Linking } from 'react-native';
+import { Alert, AppState, BackHandler, Linking } from 'react-native';
 
 import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
+import { locationPermission } from '../../lib/location';
 import { reconcileReminders, reminderPermission, type ReminderPermission } from '../../lib/reminders';
 import { useSession } from '../../lib/session';
 import { ContactForm } from '../contact/ContactForm';
@@ -149,9 +150,33 @@ function PermissionsStep({ onDone }: { onDone: () => void }) {
     }
   };
 
-  const finish = () => {
+  const start = () => {
     void reconcileReminders().catch(() => undefined);
     onDone();
+  };
+
+  // Read again on tap: the location state lives in its card, and either may have changed in the phone's settings.
+  const finish = async () => {
+    const [reminders, location] = await Promise.all([
+      reminderPermission(false).catch(() => 'notifications-denied' as const),
+      locationPermission(false).then((p) => p.granted).catch(() => false),
+    ]);
+    const missing = [
+      reminders !== 'granted' && 'os lembretes não vão tocar na hora dos remédios',
+      !location && 'o pedido de ajuda vai sem o lugar onde você está',
+    ].filter((item): item is string => !!item);
+    if (!missing.length) {
+      start();
+      return;
+    }
+    Alert.alert(
+      'Começar sem liberar tudo?',
+      `${missing.length > 1 ? 'Sem essas permissões' : 'Sem essa permissão'}, ${missing.join(' e ')}. Você pode liberar depois, no Perfil.`,
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Começar mesmo assim', onPress: start },
+      ],
+    );
   };
 
   return (
@@ -175,7 +200,7 @@ function PermissionsStep({ onDone }: { onDone: () => void }) {
         <AppText variant="support">Sem os lembretes, você ainda pode usar o app e marcar as doses pela tela Hoje.</AppText>
       )}
       <LocationCard />
-      <Button label="Começar a usar" variant={permission === 'granted' ? 'primary' : 'secondary'} onPress={finish} />
+      <Button label="Começar a usar" variant={permission === 'granted' ? 'primary' : 'secondary'} onPress={() => void finish()} />
     </>
   );
 }
