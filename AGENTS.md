@@ -100,6 +100,8 @@ starting value: keep each one in a single setting.
   database signals a change.
 - Times and dates are typed in large fields with plus and minus buttons (hour and minute, day, month and year), never
   the system's pickers.
+- The trusted contact and birth date fields show a short tooltip above the focused field while it is empty. Keep the
+  field label visible and expose the same guidance as an accessibility hint.
 - Reuse the installed development client with Metro for TypeScript and UI changes. Rebuild it to test changes to
   native dependencies or configuration. Batch changes for standalone preview builds when testing without Metro,
   such as offline reminders with the app closed. EAS keeps and increments the build numbers (`appVersionSource`

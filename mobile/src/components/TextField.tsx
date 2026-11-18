@@ -1,21 +1,25 @@
-import { useState } from 'react';
+import { useState, type ComponentRef, type Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useDisplayMode } from '../lib/displayMode';
 import { colors, fonts, text, touch } from '../theme';
 import { AppText } from './AppText';
+import { FieldHint } from './FieldHint';
 
-type TextFieldProps = Omit<TextInputProps, 'style'> & { label: string };
+type TextFieldProps = Omit<TextInputProps, 'style'> & { label: string; hint?: string; ref?: Ref<ComponentRef<typeof TextInput>> };
 
-export function TextField({ label, ...props }: TextFieldProps) {
+export function TextField({ label, hint, ...props }: TextFieldProps) {
   const { textScale } = useDisplayMode();
   const [focused, setFocused] = useState(false);
+  const emptyHint = props.value === '' ? hint : undefined;
 
   return (
     <View style={styles.field}>
       <AppText bold>{label}</AppText>
+      {focused && emptyHint && <FieldHint text={emptyHint} />}
       <TextInput
         accessibilityLabel={label}
+        accessibilityHint={emptyHint}
         placeholderTextColor={colors.graphite}
         {...props}
         onFocus={(event) => {

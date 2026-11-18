@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useRef, useState, type ComponentRef } from 'react';
+import { StyleSheet, View, type TextInput } from 'react-native';
 
 import type { Relationship } from '../../api/generated/client';
 import { AppText } from '../../components/AppText';
@@ -11,15 +11,24 @@ import { formatPhone, maxNameLength, maxPhoneDigits, phoneDigits, phoneProblem, 
 import { saveContact, type Contact } from './store';
 
 const relationships = Object.keys(relationshipLabels) as Relationship[];
+type ErrorField = 'name' | 'phone' | 'relationship' | 'save';
 
 // Name, phone and relationship: a step of setup and an edit from Perfil.
 export function ContactForm({ contact, submitLabel, onSaved }: { contact: Contact | null; submitLabel: string; onSaved: () => void }) {
   const [name, setName] = useState(contact?.name ?? '');
   const [phone, setPhone] = useState(() => phoneDigits(contact?.phone ?? ''));
   const [relationship, setRelationship] = useState<Relationship | null>(contact?.relationship ?? null);
-  const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<ErrorField | null>(null);
   const [saving, setSaving] = useState(false);
+  const phoneInput = useRef<ComponentRef<typeof TextInput>>(null);
   const firstName = name.trim().split(/\s+/)[0];
+  const problems = {
+    name: name.trim() ? '' : 'Escreva o nome do seu contato.',
+    phone: phoneProblem(phone),
+    relationship: relationship ? '' : 'Escolha o que você é para essa pessoa.',
+    save: 'Não foi possível salvar. Tente novamente.',
+  };
+  const error = errorField ? problems[errorField] : '';
 
   function changePhone(value: string) {
     const digits = phoneDigits(value);
@@ -29,10 +38,9 @@ export function ContactForm({ contact, submitLabel, onSaved }: { contact: Contac
   }
 
   const save = async () => {
-    const problem = !name.trim() ? 'Escreva o nome do seu contato.'
-      : phoneProblem(phone) || (!relationship ? 'Escolha o que você é para essa pessoa.' : '');
-    setError(problem);
-    if (problem || saving || !relationship) {
+    const invalidField = problems.name ? 'name' : problems.phone ? 'phone' : !relationship ? 'relationship' : null;
+    setErrorField(invalidField);
+    if (invalidField || saving || !relationship) {
       return;
     }
     setSaving(true);
@@ -42,7 +50,7 @@ export function ContactForm({ contact, submitLabel, onSaved }: { contact: Contac
       await saveContact({ name: name.trim(), phone: savedPhone, relationship });
       onSaved();
     } catch {
-      setError('Não foi possível salvar. Tente novamente.');
+      setErrorField('save');
     } finally {
       setSaving(false);
     }
@@ -51,12 +59,14 @@ export function ContactForm({ contact, submitLabel, onSaved }: { contact: Contac
   return (
     <>
       <TextField
-        label="Nome" value={name} onChangeText={setName} autoCapitalize="words" maxLength={maxNameLength}
-        placeholder="Ana"
+        label="Nome do seu contato" value={name} onChangeText={setName} autoCapitalize="words" maxLength={maxNameLength}
+        hint="Digite o nome do seu contato." returnKeyType="next" submitBehavior="submit"
+        onSubmitEditing={() => phoneInput.current?.focus()}
       />
       <TextField
-        label="Telefone com DDD" value={formatPhone(phone)} onChangeText={changePhone} keyboardType="number-pad"
-        autoComplete="tel" textContentType="telephoneNumber" placeholder="(11) 98765-4321"
+        ref={phoneInput} label="Telefone com DDD" value={formatPhone(phone)} onChangeText={changePhone}
+        keyboardType="number-pad" returnKeyType="done" autoComplete="tel" textContentType="telephoneNumber"
+        hint="Digite o DDD e o número do contato."
       />
 
       <View accessibilityRole="radiogroup" style={styles.group}>
