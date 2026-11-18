@@ -324,12 +324,22 @@ public class NoticeTests
 
     private static DateTime LocalToUtc(DateOnly date, TimeOnly time) => TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(time), SaoPaulo);
 
-    // Now, moved past 02:00 local when needed, so doses a little over an hour ago are on today's date and the setup's
-    // contact (the real clock) still counts as recent for them.
+    // Now, moved forward to 01:30 local when it is earlier or past 19:30, so doses a little over an hour ago are on the
+    // same date and no check runs into the 20:00 summary. Never more than 6 hours ahead, so the setup's contact (the
+    // real clock) still counts as recent for them.
     private static DateTime DaytimeNow()
     {
         var now = DateTime.UtcNow;
-        return Local(now).Hour < 2 ? now.AddHours(2) : now;
+        var local = Local(now);
+        var earliest = new TimeOnly(1, 30);
+        var time = TimeOnly.FromDateTime(local);
+
+        if (time >= new TimeOnly(19, 30))
+        {
+            return LocalToUtc(DateOnly.FromDateTime(local).AddDays(1), earliest);
+        }
+
+        return time < earliest ? LocalToUtc(DateOnly.FromDateTime(local), earliest) : now;
     }
 
     private static (DateOnly Date, TimeOnly Time) LocalMinutesAgo(DateTime utc, int minutes)
