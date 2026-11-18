@@ -10,7 +10,7 @@ import { Screen } from '../../components/Screen';
 import { StatusChip } from '../../components/StatusChip';
 import { useDisplayMode } from '../../lib/displayMode';
 import { takeDose } from '../../lib/reminders';
-import { colors } from '../../theme';
+import { colors, text } from '../../theme';
 import { nextDose, type Dose } from '../medications/doses';
 import { formatClock, formatDay } from '../medications/format';
 import { useToday } from '../medications/useToday';
@@ -73,7 +73,7 @@ function NextDose({ dose }: { dose: Dose }) {
         <AppText bold color={colors.orchid800}>Próximo</AppText>
         <StatusChip status={state} />
       </View>
-      <AppText variant="screen" scale={4 / 3}>{time}</AppText>
+      <AppText variant="screen" scale={40 / text.screen.fontSize}>{time}</AppText>
       <AppText variant="title">{medication.name}</AppText>
       {medication.dose && <AppText variant="support">{medication.dose}</AppText>}
       <Button

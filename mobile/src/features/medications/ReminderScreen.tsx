@@ -8,7 +8,7 @@ import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
 import { StatusChip } from '../../components/StatusChip';
 import { snoozeDose, takeDose } from '../../lib/reminders';
-import { colors } from '../../theme';
+import { colors, text } from '../../theme';
 import { formatClock } from './format';
 import { useDoseRecords, useMedications } from './store';
 
@@ -25,7 +25,7 @@ export function ReminderScreen({ route }: Props) {
 
   return (
     <Screen title="Hora do remédio" onBack={leave}>
-      <AppText variant="screen" scale={2.4} style={styles.time}>{time}</AppText>
+      <AppText variant="screen" scale={72 / text.screen.fontSize} style={styles.time}>{time}</AppText>
 
       {medication && (
         <Card style={styles.medication}>

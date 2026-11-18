@@ -61,18 +61,21 @@ app a carrega de `@expo-google-fonts/atkinson-hyperlegible-next`.
 
 | Papel | Tamanho / altura da linha |
 | --- | --- |
-| Tela | 30 / 36, negrito |
-| Título | 22 / 28, negrito |
-| Botão | 20 / 26, negrito |
-| Corpo | 18 / 26 |
+| Tela | 26 / 32, negrito |
+| Título | 20 / 26, negrito |
+| Botão | 18 / 24, negrito |
+| Corpo | 17 / 24 |
 | Apoio | 16 / 22 |
 
 - Os tamanhos valem com a fonte padrão do celular. Tudo cresce com o ajuste do sistema, e nada fica abaixo de 16.
 - Tamanho grande de verdade só onde há ação: no lembrete, o horário (72) e o Tomei (30), além do SOS.
-- Rótulos das abas crescem até 1,15× e chips até 1,3× (`maxFontSizeMultiplier`); o resto acompanha o sistema sem
-  limite. O modo de letras grandes do app multiplica tudo por 1,25× e reforça o contraste: o texto de apoio passa de
-  Grafite para Tinta, e as bordas de cartões e divisórias passam de Divisória para Contorno, com 2 dp. A paleta já
-  passa de 4,5:1 nos textos, então o modo não troca nenhuma outra cor.
+- Rótulos das abas crescem até 1,15×, chips até 1,3×, títulos até 1,7× e o título da tela até 1,5×
+  (`maxFontSizeMultiplier`), para não quebrarem em várias linhas com a fonte do sistema grande; o corpo e o apoio
+  acompanham o sistema sem limite.
+- O modo de letras grandes do app multiplica tudo por 1,25× só enquanto a fonte do sistema estiver abaixo de 130%:
+  quem já aumentou a fonte do celular não recebe as duas escalas somadas, e o modo vira "Mais contraste". Ele sempre
+  reforça o contraste: o texto de apoio passa de Grafite para Tinta, e as bordas de cartões e divisórias passam de
+  Divisória para Contorno, com 2 dp. A paleta já passa de 4,5:1 nos textos, então o modo não troca nenhuma outra cor.
 - Com a fonte acima de 130% (`fontScale` de `useWindowDimensions`), o que fica lado a lado passa a ficar empilhado. A
   tela rola só na vertical, nunca na horizontal.
 - Teste com a maior fonte do sistema. No Android 14 ou mais novo a ampliação não é linear: textos grandes crescem

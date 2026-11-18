@@ -1,7 +1,7 @@
 import { Text, type TextProps } from 'react-native';
 
 import { useDisplayMode } from '../lib/displayMode';
-import { colors, fonts, text } from '../theme';
+import { colors, fonts, maxFontScale, text } from '../theme';
 
 type Variant = keyof typeof text;
 
@@ -24,6 +24,7 @@ export function AppText({ variant = 'body', scale = 1, bold, color, style, ...pr
 
   return (
     <Text
+      maxFontSizeMultiplier={variant === 'screen' || variant === 'title' ? maxFontScale[variant] : undefined}
       {...props}
       style={[
         {

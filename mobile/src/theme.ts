@@ -30,19 +30,24 @@ export const fonts = {
 };
 
 export const text = {
-  screen: { fontSize: 30, lineHeight: 36 },
-  title: { fontSize: 22, lineHeight: 28 },
-  button: { fontSize: 20, lineHeight: 26 },
-  body: { fontSize: 18, lineHeight: 26 },
+  screen: { fontSize: 26, lineHeight: 32 },
+  title: { fontSize: 20, lineHeight: 26 },
+  button: { fontSize: 18, lineHeight: 24 },
+  body: { fontSize: 17, lineHeight: 24 },
   support: { fontSize: 16, lineHeight: 22 },
 };
 
-export const maxFontScale = { tab: 1.15, chip: 1.3 };
+// How far the system font grows each one. Screen titles and titles stop early, so a large system font doesn't break
+// them across lines; body text grows without limit.
+export const maxFontScale = { tab: 1.15, chip: 1.3, screen: 1.5, title: 1.7 };
 
 // Above this system font scale, side-by-side layouts stack so the screen never scrolls sideways.
 export const stackedFontScale = 1.3;
 
+// The large-text mode grows text only while the system font is below largeTextUpToFontScale: whoever already set a
+// large font gets only its stronger contrast, instead of both scales multiplied.
 export const largeTextScale = 1.25;
+export const largeTextUpToFontScale = 1.3;
 
 // The large-text mode also strengthens contrast: supporting text in ink and stronger borders.
 export const contrast = {

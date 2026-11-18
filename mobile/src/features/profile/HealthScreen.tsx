@@ -26,7 +26,7 @@ export function HealthForm(props: HealthFormProps) {
 }
 
 function Form({ profile, submitLabel, onSaved, onSkip }: HealthFormProps & { profile: Profile }) {
-  const { largeText, setLargeText } = useDisplayMode();
+  const { largeText, setLargeText, growsText } = useDisplayMode();
   const [conditions, setConditions] = useState(profile.conditions);
   const [other, setOther] = useState(profile.otherCondition ?? '');
   const [livesAlone, setLivesAlone] = useState(profile.livesAlone);
@@ -85,7 +85,7 @@ function Form({ profile, submitLabel, onSaved, onSkip }: HealthFormProps & { pro
 
       {visionDifficulty && (
         <Card>
-          <YesNo question="Letras grandes e mais contraste" value={largeText} onChange={(on) => setLargeText(on ?? false)} />
+          <YesNo question={growsText ? 'Letras grandes e mais contraste' : 'Mais contraste'} value={largeText} onChange={(on) => setLargeText(on ?? false)} />
           <AppText variant="support">Vale só para este celular. Você pode mudar no Perfil.</AppText>
         </Card>
       )}

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useWindowDimensions } from 'react-native';
 
-import { contrast, largeTextScale, stackedFontScale } from '../theme';
+import { contrast, largeTextScale, largeTextUpToFontScale, stackedFontScale } from '../theme';
 import { getSetting, setSetting } from './db';
 
 const largeTextKey = 'large_text';
@@ -38,11 +38,14 @@ export function DisplayModeProvider({ children }: { children: ReactNode }) {
 export function useDisplayMode() {
   const { largeText, setLargeText } = useContext(DisplayModeContext);
   const { fontScale } = useWindowDimensions();
-  const textScale = largeText ? largeTextScale : 1;
+  const growsText = fontScale < largeTextUpToFontScale;
+  const textScale = largeText && growsText ? largeTextScale : 1;
 
   return {
     largeText,
     setLargeText,
+    // Whether the mode would grow the text on this phone, or only strengthen the contrast.
+    growsText,
     textScale,
     contrast: largeText ? contrast.strong : contrast.normal,
     // What sits side by side stacks once the system font and the app's mode together pass the limit.

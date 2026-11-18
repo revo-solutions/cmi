@@ -22,7 +22,7 @@ export function ProfileScreen() {
   const navigation = useNavigation();
   const profile = useProfile();
   const contact = useContact();
-  const { largeText, setLargeText } = useDisplayMode();
+  const { largeText, setLargeText, growsText } = useDisplayMode();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
@@ -101,11 +101,15 @@ export function ProfileScreen() {
 
       <Card>
         <YesNo
-          question="Letras grandes e mais contraste"
+          question={growsText ? 'Letras grandes e mais contraste' : 'Mais contraste'}
           value={largeText}
           onChange={(on) => setLargeText(on ?? false)}
         />
-        <AppText variant="support">Vale só para este celular e soma com o tamanho de letra do sistema.</AppText>
+        <AppText variant="support">
+          {growsText
+            ? 'Vale só para este celular e soma com o tamanho de letra do sistema.'
+            : 'Vale só para este celular. A letra já está grande nos ajustes do celular, então aqui só reforçamos o contraste.'}
+        </AppText>
       </Card>
       <BatteryCard />
       <Card accessibilityState={{ busy }}>
