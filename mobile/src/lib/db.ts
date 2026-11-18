@@ -92,6 +92,11 @@ export const migrations = [
     last_error TEXT
   );
   `,
+  `
+  -- Where the phone was when help was asked for, if it knew within a few seconds.
+  ALTER TABLE sos_requests ADD COLUMN latitude REAL;
+  ALTER TABLE sos_requests ADD COLUMN longitude REAL;
+  `,
 ];
 
 export function pendingMigrations(version: number) {

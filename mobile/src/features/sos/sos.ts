@@ -3,6 +3,7 @@ import { randomUUID } from 'expo-crypto';
 import { ApiUnavailableError } from '../../api/client';
 import { NoticeStatus, sosGet, sosSend, type SosStatusModel } from '../../api/generated/client';
 import { getDatabase, useRows, writeTransaction } from '../../lib/db';
+import type { Position } from '../../lib/location';
 import { withSession } from '../../lib/session';
 
 // Opening SOS again within this time shows the same request rather than paying for, and alarming the family with, a
@@ -13,9 +14,12 @@ export const slowMs = 10_000;
 export const pollMs = 3_000;
 export const pollLimitMs = 2 * 60_000;
 
-type HelpRow = { id: string; requested_at: string; accepted: number; status: NoticeStatus; last_error: string | null };
+type HelpRow = {
+  id: string; requested_at: string; accepted: number; status: NoticeStatus; last_error: string | null;
+  latitude: number | null; longitude: number | null;
+};
 
-export type HelpRequest = { id: string; requestedAt: string; status: NoticeStatus; offline: boolean };
+export type HelpRequest = { id: string; requestedAt: string; status: NoticeStatus; offline: boolean; located: boolean };
 
 export type HelpView = 'sending' | 'slow' | 'offline' | 'sent' | 'delivered' | 'read' | 'notSent' | 'failed';
 
@@ -50,12 +54,16 @@ export function useHelpRequest(id: string | null): HelpRequest | null | undefine
   const rows = useRows<HelpRow>('SELECT * FROM sos_requests WHERE id = ?', [id]);
   const row = rows?.[0];
   return rows && (row
-    ? { id: row.id, requestedAt: row.requested_at, status: row.status, offline: row.last_error === 'connection' }
+    ? {
+      id: row.id, requestedAt: row.requested_at, status: row.status, offline: row.last_error === 'connection',
+      located: row.latitude !== null,
+    }
     : null);
 }
 
 // A new request, or the recent one still under way. The id makes it safe to send again until the server answers.
-export async function requestHelp(again = false, now = new Date()) {
+// A new one waits for the position, which helpPosition bounds to a few seconds, so it is sent once, with the map.
+export async function requestHelp(again = false, now = new Date(), position: Promise<Position | null> = Promise.resolve(null)) {
   const db = await getDatabase();
   const latest = await db.getFirstAsync<HelpRow>('SELECT * FROM sos_requests ORDER BY rowid DESC LIMIT 1');
   if (!again && latest && latest.status !== NoticeStatus.Failed &&
@@ -63,8 +71,12 @@ export async function requestHelp(again = false, now = new Date()) {
     return latest.id;
   }
   const id = randomUUID();
+  const found = await position;
   await writeTransaction(async (transaction) => {
-    await transaction.runAsync('INSERT INTO sos_requests (id, requested_at) VALUES (?, ?)', id, localInstant(now));
+    await transaction.runAsync(
+      'INSERT INTO sos_requests (id, requested_at, latitude, longitude) VALUES (?, ?, ?, ?)',
+      id, localInstant(now), found?.latitude ?? null, found?.longitude ?? null,
+    );
   });
   void refreshHelpRequest(id);
   return id;
@@ -75,7 +87,9 @@ async function refresh(row: HelpRow) {
   try {
     result = row.accepted
       ? await withSession((options) => sosGet(row.id, options))
-      : await withSession((options) => sosSend({ id: row.id, requestedAt: row.requested_at }, options));
+      : await withSession((options) => sosSend(
+        { id: row.id, requestedAt: row.requested_at, latitude: row.latitude, longitude: row.longitude }, options,
+      ));
   } catch (error) {
     await writeTransaction(async (transaction) => {
       await transaction.runAsync(

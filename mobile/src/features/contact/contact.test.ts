@@ -59,4 +59,11 @@ describe('links', () => {
     expect(helpMessage('Maria')).toBe('Aqui é Maria. Preciso de ajuda. Por favor, me ligue.');
     expect(helpMessage(null)).toBe('Preciso de ajuda. Por favor, me ligue.');
   });
+
+  it('ends the help message with the map link the WhatsApp notice also uses', () => {
+    expect(helpMessage('Maria', { latitude: -23.5505199, longitude: -46.6333094 })).toBe(
+      'Aqui é Maria. Preciso de ajuda. Por favor, me ligue. Estou aqui: ' +
+      'https://www.google.com/maps/search/?api=1&query=-23.550520,-46.633309',
+    );
+  });
 });

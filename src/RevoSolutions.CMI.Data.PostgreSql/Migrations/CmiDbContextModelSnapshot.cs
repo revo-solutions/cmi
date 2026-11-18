@@ -386,6 +386,12 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("MessageId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");

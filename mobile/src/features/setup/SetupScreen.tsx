@@ -16,6 +16,7 @@ import { useMedications } from '../medications/store';
 import { AboutForm } from '../profile/AboutScreen';
 import { BatteryCard } from '../profile/BatteryCard';
 import { HealthForm } from '../profile/HealthScreen';
+import { LocationCard } from '../sos/LocationCard';
 import { askHealthLater, setupSteps, useSetup, type SetupStep } from './setup';
 
 const titles: Record<Exclude<SetupStep, 'done'>, string> = {
@@ -23,7 +24,7 @@ const titles: Record<Exclude<SetupStep, 'done'>, string> = {
   health: 'Sua saúde',
   medications: 'Seus remédios',
   contact: 'Contato de confiança',
-  permissions: 'Lembretes',
+  permissions: 'Permissões',
 };
 
 // The first-run setup, one step at a time in a fixed order; it resumes where it stopped (docs/escopo.md).
@@ -173,6 +174,7 @@ function PermissionsStep({ onDone }: { onDone: () => void }) {
       {permission !== 'granted' && (
         <AppText variant="support">Sem os lembretes, você ainda pode usar o app e marcar as doses pela tela Hoje.</AppText>
       )}
+      <LocationCard />
       <Button label="Começar a usar" variant={permission === 'granted' ? 'primary' : 'secondary'} onPress={finish} />
     </>
   );

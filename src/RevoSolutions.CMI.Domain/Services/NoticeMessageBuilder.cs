@@ -53,6 +53,12 @@ public class NoticeMessageBuilder
         };
     }
 
+    // Google's Maps URL, since the contact's phone is unknown: it opens Google Maps on Android, and Google Maps or the
+    // browser on an iPhone. The app's SMS carries the same link.
+    public static string MapLink(Notice notice) => notice is { Latitude: { } latitude, Longitude: { } longitude }
+        ? string.Create(CultureInfo.InvariantCulture, $"https://www.google.com/maps/search/?api=1&query={latitude:F6},{longitude:F6}")
+        : "não disponível";
+
     // Null when there is nothing left to say, such as a missed dose recorded in the meantime.
     public async Task<NoticeMessage?> Build(Notice notice, Contact contact)
     {
@@ -68,7 +74,7 @@ public class NoticeMessageBuilder
         {
             NoticeKind.MissedDose => await MissedDose(account, notice, subject),
             NoticeKind.DailySummary => await Summary(account, notice.Day, subject),
-            NoticeKind.Sos => new(NoticeTemplate.Sos, [subject, string.Create(CultureInfo.InvariantCulture, $"{notice.Day:dd/MM} às {notice.ScheduledTime:HH:mm}")]),
+            NoticeKind.Sos => new(NoticeTemplate.Sos, [subject, string.Create(CultureInfo.InvariantCulture, $"{notice.Day:dd/MM} às {notice.ScheduledTime:HH:mm}"), MapLink(notice)]),
             NoticeKind.NoContact => new(NoticeTemplate.NoContact, [subject, Number(_settings.NoContactLimit(account.Platform).TotalHours)]),
             NoticeKind.Uninstalled => new(NoticeTemplate.Uninstalled, [subject]),
             NoticeKind.Paused => new(NoticeTemplate.Paused, [subject, Number(_settings.AbandonmentDays)]),

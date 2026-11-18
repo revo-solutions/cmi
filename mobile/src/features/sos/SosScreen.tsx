@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { Check, Phone, RotateCw, UserPlus, WifiOff, X, type LucideIcon } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { NoticeStatus } from '../../api/generated/client';
@@ -8,6 +8,7 @@ import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
+import { helpPosition, type Position } from '../../lib/location';
 import { colors } from '../../theme';
 import { callUrl } from '../contact/contact';
 import { ContactActions } from '../contact/ContactActions';
@@ -24,13 +25,19 @@ export function SosScreen() {
   const contact = useContact();
   const [requestId, setRequestId] = useState<string | null>(null);
   const request = useHelpRequest(requestId);
+  const [asking, setAsking] = useState(false);
+  const [position, setPosition] = useState<Position | null>(null);
   const [error, setError] = useState('');
   const asked = useRef(false);
 
   const ask = (again: boolean) => {
-    requestHelp(again)
+    const located = helpPosition();
+    void located.then((found) => found && setPosition(found));
+    setAsking(true);
+    requestHelp(again, new Date(), located)
       .then(setRequestId)
-      .catch((reason: unknown) => console.warn('Não foi possível guardar o pedido de ajuda.', reason));
+      .catch((reason: unknown) => console.warn('Não foi possível guardar o pedido de ajuda.', reason))
+      .finally(() => setAsking(false));
   };
 
   useEffect(() => {
@@ -50,10 +57,11 @@ export function SosScreen() {
   return (
     <Screen title="Pedir ajuda" onBack={() => navigation.goBack()}>
       {contact && request && <HelpStatus request={request} name={contact.name} onRetry={() => ask(true)} />}
-      {contact && !whatsApp && (
+      {contact && !request && asking && <StatusView content={sending(contact.name)} />}
+      {contact && !whatsApp && !asking && (
         <AppText>Ligue para {contact.name} ou mande um SMS com o pedido de ajuda já escrito.</AppText>
       )}
-      {contact && <ContactActions contact={contact} help />}
+      {contact && <ContactActions contact={contact} help={{ position }} />}
       {contact === null && (
         <Card>
           <AppText>Cadastre um contato de confiança para pedir ajuda a alguém com um toque.</AppText>
@@ -73,6 +81,10 @@ const tones = {
 };
 
 type Content = { icon?: LucideIcon; tone: keyof typeof tones; title: string; text: string };
+
+const sending = (name: string): Content => (
+  { tone: 'wait', title: 'Enviando seu pedido de ajuda', text: `Estamos avisando ${name} pelo WhatsApp.` }
+);
 
 function HelpStatus({ request, name, onRetry }: { request: HelpRequest; name: string; onRetry: () => void }) {
   const [now, setNow] = useState(Date.now);
@@ -97,19 +109,31 @@ function HelpStatus({ request, name, onRetry }: { request: HelpRequest; name: st
   if (view === 'notSent') {
     return null;
   }
+  const where = request.located ? ' A mensagem leva o lugar onde você está.' : '';
   const contents: Record<Exclude<HelpView, 'notSent'>, Content> = {
-    sending: { tone: 'wait', title: 'Enviando seu pedido de ajuda', text: `Estamos avisando ${name} pelo WhatsApp.` },
+    sending: sending(name),
     slow: { tone: 'wait', title: 'O envio está demorando', text: `Se precisar, ligue para ${name} enquanto isso.` },
     offline: {
       icon: WifiOff, tone: 'wait', title: 'Sem internet agora',
       text: 'Seu pedido está guardado e sai pelo WhatsApp assim que a conexão voltar. Enquanto isso, ligue.',
     },
-    sent: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `Enviamos seu pedido das ${time} para ${name} pelo WhatsApp.` },
-    delivered: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `Sua mensagem chegou ao WhatsApp de ${name}.` },
-    read: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `${name} leu sua mensagem no WhatsApp.` },
+    sent: {
+      icon: Check, tone: 'good', title: 'Pedido de ajuda enviado',
+      text: `Enviamos seu pedido das ${time} para ${name} pelo WhatsApp.${where}`,
+    },
+    delivered: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `Sua mensagem chegou ao WhatsApp de ${name}.${where}` },
+    read: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `${name} leu sua mensagem no WhatsApp.${where}` },
     failed: { icon: X, tone: 'bad', title: 'Não conseguimos enviar', text: `Ligue para ${name} ou tente de novo.` },
   };
-  const content = contents[view];
+
+  return (
+    <StatusView content={contents[view]}>
+      {view === 'failed' && <Button label="Tentar de novo" variant="secondary" icon={RotateCw} onPress={onRetry} />}
+    </StatusView>
+  );
+}
+
+function StatusView({ content, children }: { content: Content; children?: ReactNode }) {
   const tone = tones[content.tone];
   const Icon = content.icon;
 
@@ -122,7 +146,7 @@ function HelpStatus({ request, name, onRetry }: { request: HelpRequest; name: st
       )}
       <AppText variant="title" accessibilityRole="header" style={styles.center}>{content.title}</AppText>
       <AppText style={styles.center}>{content.text}</AppText>
-      {view === 'failed' && <Button label="Tentar de novo" variant="secondary" icon={RotateCw} onPress={onRetry} />}
+      {children}
     </View>
   );
 }

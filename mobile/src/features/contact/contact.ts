@@ -1,4 +1,5 @@
 import type { Relationship } from '../../api/generated/client';
+import type { Position } from '../../lib/location';
 
 // What the person is to the contact, as the notices read it: "sua mãe, Maria" (docs/escopo.md, parentesco).
 export const relationshipLabels: Record<Relationship, string> = {
@@ -66,6 +67,13 @@ export function whatsAppLinkUrl(appNumber: string, message: string) {
   return `https://wa.me/${appNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
 }
 
-export function helpMessage(personName: string | null) {
-  return `${personName ? `Aqui é ${personName}. ` : ''}Preciso de ajuda. Por favor, me ligue.`;
+// The same link the server puts in the WhatsApp message: Google's, because the contact's phone is unknown. It opens
+// Google Maps on Android, and Google Maps or the browser on an iPhone.
+export function mapsUrl({ latitude, longitude }: Position) {
+  return `https://www.google.com/maps/search/?api=1&query=${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+}
+
+export function helpMessage(personName: string | null, position: Position | null = null) {
+  return `${personName ? `Aqui é ${personName}. ` : ''}Preciso de ajuda. Por favor, me ligue.` +
+    (position ? ` Estou aqui: ${mapsUrl(position)}` : '');
 }

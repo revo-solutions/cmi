@@ -45,7 +45,15 @@
       ],
       "expo-secure-store",
       "expo-background-task",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O pedido de ajuda leva um link do mapa com o lugar onde você está, para o seu contato de confiança chegar até você.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isIosBackgroundLocationEnabled": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

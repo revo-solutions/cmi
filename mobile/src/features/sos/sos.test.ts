@@ -50,7 +50,8 @@ beforeEach(() => {
 });
 
 const asked = '2026-11-18T14:32:00-03:00';
-const request = (status: HelpRequest['status'], offline = false): HelpRequest => ({ id: 'sos', requestedAt: asked, status, offline });
+const request = (status: HelpRequest['status'], offline = false): HelpRequest =>
+  ({ id: 'sos', requestedAt: asked, status, offline, located: false });
 
 test('a request reads as its delivery status, and as slow or offline while the server has none', () => {
   const at = Date.parse(asked);
@@ -77,6 +78,22 @@ test('opening SOS again soon shows the same request, unless it failed or the per
   const again = await requestHelp(true, now);
   mockSql.prepare('UPDATE sos_requests SET status = ? WHERE id = ?').run(NoticeStatus.Failed, again);
   expect(await requestHelp(false, now)).not.toBe(again);
+});
+
+test('a new request carries the position, and a reused one does not wait for it', async () => {
+  const id = await requestHelp(false, new Date(), Promise.resolve({ latitude: -23.55, longitude: -46.63 }));
+  await refreshHelpRequest(id);
+  expect(send).toHaveBeenLastCalledWith(
+    expect.objectContaining({ id, latitude: -23.55, longitude: -46.63 }), {},
+  );
+
+  expect(await requestHelp(false, new Date(), new Promise(() => undefined))).toBe(id);
+});
+
+test('without a position the request goes all the same', async () => {
+  const id = await requestHelp(true, new Date(), Promise.resolve(null));
+  await refreshHelpRequest(id);
+  expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ id, latitude: null, longitude: null }), {});
 });
 
 test('a request waits offline, then is sent with its id and read back once the server has it', async () => {

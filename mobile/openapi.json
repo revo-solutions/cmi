@@ -947,6 +947,20 @@
           "requestedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "latitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },

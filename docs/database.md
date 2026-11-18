@@ -96,6 +96,8 @@ erDiagram
         varchar(150) Key UK "chave de idempotência"
         date Day
         time ScheduledTime "opcional"
+        float8 Latitude "posição do SOS, opcional"
+        float8 Longitude "posição do SOS, opcional"
         timestamptz SentAt "opcional"
         varchar(100) MessageId "id da mensagem no WhatsApp, opcional"
         varchar(20) Status "NotSent, Sent, Delivered, Read ou Failed, opcional"

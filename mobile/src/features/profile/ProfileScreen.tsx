@@ -12,6 +12,7 @@ import { deleteAccount, PendingChangesError, signOut } from '../../lib/session';
 import { requestSync } from '../../lib/sync';
 import { forgetGoogleSignIn } from '../auth/socialLogin';
 import { useContact } from '../contact/store';
+import { LocationCard } from '../sos/LocationCard';
 import { BatteryCard } from './BatteryCard';
 import { formatBirthDate } from './birthday';
 import { DeleteAccountPrompt } from './DeleteAccountPrompt';
@@ -106,6 +107,7 @@ export function ProfileScreen() {
         </AppText>
       </Card>
       <BatteryCard />
+      <LocationCard />
       <Card accessibilityState={{ busy }}>
         <AppText variant="title" accessibilityRole="header">Conta</AppText>
         <AppText>Sair mantém sua conta e seus dados salvos no servidor.</AppText>

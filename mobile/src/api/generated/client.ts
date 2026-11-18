@@ -43,6 +43,10 @@ export interface ContactLinkModel {
 export interface SosModel {
   id: string;
   requestedAt: string;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
 }
 
 export type NoticeStatus = typeof NoticeStatus[keyof typeof NoticeStatus] | null;

@@ -28,7 +28,7 @@ public class SosTests
     public async Task A_premium_sos_goes_to_the_linked_contact_once_and_the_app_follows_its_status()
     {
         var person = await Person(premium: true);
-        var sos = new SosModel(Guid.NewGuid(), RequestedAt);
+        var sos = new SosModel(Guid.NewGuid(), RequestedAt, -23.5505199, -46.6333094);
 
         (await Send(person, sos)).Should().Be(new SosStatusModel(sos.Id, null));
         (await Send(person, sos)).Should().Be(new SosStatusModel(sos.Id, null));
@@ -38,7 +38,10 @@ public class SosTests
         message.Should().BeEquivalentTo(new
         {
             Template = "pedido_de_ajuda",
-            Parameters = new[] { "da sua mãe, Maria", "17/11 às 14:32" },
+            Parameters = new[]
+            {
+                "da sua mãe, Maria", "17/11 às 14:32", "https://www.google.com/maps/search/?api=1&query=-23.550520,-46.633309",
+            },
         });
         (await Status(person, sos.Id)).Should().Be(NoticeStatus.Sent);
 
@@ -46,6 +49,35 @@ public class SosTests
         await _factory.ReceiveWhatsAppStatus(message.Id, "read");
         await _factory.ReceiveWhatsAppStatus(message.Id, "delivered");
         (await Status(person, sos.Id)).Should().Be(NoticeStatus.Read);
+    }
+
+    [Fact]
+    public async Task Without_a_position_the_message_says_so()
+    {
+        var person = await Person(premium: true);
+        await Send(person, new SosModel(Guid.NewGuid(), RequestedAt));
+        await _factory.ProcessOutbox();
+
+        _factory.WhatsApp.SentTo(person.WhatsApp).Single(m => m.Template != null).Parameters
+            .Should().EndWith("não disponível");
+    }
+
+    [Fact]
+    public async Task A_position_needs_both_coordinates_within_range()
+    {
+        var person = await Person(premium: true);
+
+        foreach (var sos in new[]
+        {
+            new SosModel(Guid.NewGuid(), RequestedAt, -23.55, null),
+            new SosModel(Guid.NewGuid(), RequestedAt, null, -46.63),
+            new SosModel(Guid.NewGuid(), RequestedAt, 91, -46.63),
+            new SosModel(Guid.NewGuid(), RequestedAt, -23.55, 181),
+        })
+        {
+            (await person.Phone.PostAsJsonAsync("/api/v1/sos", sos, CmiApiFactory.Json)).StatusCode
+                .Should().Be(HttpStatusCode.BadRequest);
+        }
     }
 
     [Fact]

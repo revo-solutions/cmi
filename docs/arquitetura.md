@@ -144,13 +144,17 @@ valores precisa continuar a mesma.
 | `celular_sem_contato` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} está sem contato há mais de {{2}} horas. Vale a pena ligar para saber se está tudo bem. |
 | `app_desinstalado` | Utilidade | Aviso do Central Melhor Idade: o celular {{1}} parou de receber as notificações do app, que pode ter sido desinstalado ou ficado com as notificações desligadas. Assim os lembretes de remédio também param. Vale a pena ligar para ajudar. |
 | `avisos_pausados` | Utilidade | Aviso do Central Melhor Idade: há {{2}} dias não recebemos nenhum registro de dose {{1}}. Pausamos os avisos de dose e o resumo diário, que voltam sozinhos no próximo registro. |
-| `pedido_de_ajuda` | Utilidade | Pedido de ajuda {{1}}, enviado pelo Central Melhor Idade em {{2}}. Ligue agora para saber se está tudo bem. |
+| `pedido_de_ajuda` | Utilidade | Pedido de ajuda {{1}}, enviado pelo Central Melhor Idade em {{2}}. Localização aproximada: {{3}}. Ligue agora para saber se está tudo bem. |
 | `aniversario` | Marketing (provável) | Lembrete do Central Melhor Idade: hoje é aniversário {{1}}. Que tal ligar para dar os parabéns? |
 
 Valores: em `dose_sem_confirmacao`, `{{2}}` é o horário ("08:00") e `{{3}}` são os remédios ("Losartana 50 mg,
 Metformina"). Em `resumo_diario`, são as contagens das 24 horas antes das 20h. Em `celular_sem_contato`, `{{2}}` é o
 limite (12, ou 24 no iPhone). Em `avisos_pausados`, `{{2}}` são os dias sem registro (3). Em `pedido_de_ajuda`,
-`{{2}}` é o dia e a hora no relógio do celular ("17/11 às 14:32"), porque o pedido pode chegar atrasado pela fila.
+`{{2}}` é o dia e a hora no relógio do celular ("17/11 às 14:32"), porque o pedido pode chegar atrasado pela fila, e
+`{{3}}` é o link do Google Maps com a posição (`https://www.google.com/maps/search/?api=1&query=-23.550520,-46.633309`)
+ou "não disponível". O link do Google, e não o da Apple, porque não se sabe qual celular o familiar usa: ele abre o
+Google Maps no Android e o Google Maps ou o navegador no iPhone. Um cabeçalho de localização no modelo mostraria um
+mapa, mas exigiria posição em todo envio, e portanto um segundo modelo.
 
 As respostas ao familiar quando ele envia o código, PARAR ou outra mensagem são texto livre, sem modelo. Elas são
 gratuitas, porque saem dentro das 24 horas que a mensagem dele abriu. Os textos estão em `ContactLinkService`.
@@ -183,6 +187,10 @@ gratuitas, porque saem dentro das 24 horas que a mensagem dele abriu. Os textos 
   português no próprio código, sem camada de i18n até haver um segundo idioma previsto.
 - **SOS sem internet.** Se o envio pelo servidor falhar, o app oferece ligar e mandar SMS. O SMS abre o aplicativo de
   mensagens com o texto pronto, e por isso o app não precisa da permissão de SMS, que a Play restringe.
+- **Localização no SOS.** `expo-location`, só com a permissão "durante o uso do app": localização em segundo plano
+  traria a revisão mais rígida das lojas. O GPS funciona sem internet, então o SMS enviado offline também leva o link.
+  A posição fica no aviso (`Notices.Latitude` e `Longitude`), porque a mensagem é montada na hora do envio; é dado
+  sensível e entra na política de privacidade e na seção de segurança de dados da Play.
 
 ## Sincronização
 

@@ -62,6 +62,7 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 - Exibir um botão **SOS** na tela inicial, em todos os planos.
 - **Grátis.** O SOS liga para o contato de confiança ou abre o SMS com o texto pronto, pelo plano do próprio celular, sem custo para o app.
 - **Premium.** O pedido de ajuda também sai automaticamente pelo WhatsApp para o contato vinculado.
+- **Localização.** O pedido pelo WhatsApp e o SMS levam um link do Google Maps com o lugar onde a pessoa está, que abre o mapa no Android e no iPhone. O app usa a última posição recente ou espera no máximo **5 segundos** por uma nova; sem posição, o pedido sai assim mesmo. A permissão é só "durante o uso do app" e é pedida na configuração inicial e no Perfil, nunca na tela de SOS.
 - Mostrar o status do envio, inclusive quando houver falha, e oferecer um atalho para ligar ao contato.
 
 ### Telefones úteis e artigos
@@ -207,7 +208,7 @@ Ficou fora do MVP, que prioriza o aviso de dose sem confirmação. Entra em uma 
 ## Evoluções após o MVP
 
 - Detecção de possíveis quedas, se o spike for aprovado.
-- Check-in diário de bem-estar e compartilhamento de localização.
+- Check-in diário de bem-estar e compartilhamento contínuo de localização (a posição no SOS já está no MVP).
 - Mais contatos, estoque e reposição de medicamentos e agenda de consultas.
 - **Gestão editorial.** Entra quando outra pessoa passar a escrever (por exemplo, um profissional de saúde parceiro que não usa git), quando o ritmo de publicação pedir agendamento ou quando houver telefones por cidade, que dependem da localização e precisam vir do servidor. Será um admin próprio e simplificado, sem CMS pronto, e o app passa a buscar o conteúdo pela API.
 - Comentários, eventos, ofertas e enquetes.

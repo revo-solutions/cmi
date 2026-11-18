@@ -19,6 +19,11 @@ public class Notice : EntityBase
     // The scheduled time of a missed dose, every dose due then being in the same notice; or the time of an SOS.
     public TimeOnly? ScheduledTime { get; set; }
 
+    // Where the phone was when an SOS was asked for, if it knew in time.
+    public double? Latitude { get; set; }
+
+    public double? Longitude { get; set; }
+
     public DateTime? SentAt { get; set; }
 
     // WhatsApp's id for the message, which its delivery statuses refer to. Null when nothing was sent.

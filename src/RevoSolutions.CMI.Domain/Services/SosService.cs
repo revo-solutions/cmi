@@ -31,12 +31,15 @@ public class SosService
         if (await _notices.FirstOrDefault(n => n.Key == key) is null)
         {
             var local = request.RequestedAt.DateTime;
-            await _notices.Add(Notice.Create(
+            var notice = Notice.Create(
                 _currentAccount.AccountId,
                 NoticeKind.Sos,
                 key,
                 DateOnly.FromDateTime(local),
-                new TimeOnly(local.Hour, local.Minute)));
+                new TimeOnly(local.Hour, local.Minute));
+            notice.Latitude = request.Latitude;
+            notice.Longitude = request.Longitude;
+            await _notices.Add(notice);
             await _unitOfWork.CommitAsync();
         }
 

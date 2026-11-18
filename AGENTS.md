@@ -149,6 +149,10 @@ starting value: keep each one in a single setting.
   blocked sync doesn't hold it back) sent by `POST sos` with its id and the phone's offset, then read by
   `GET sos/{id}`. Opening it again within 5 minutes shows the same request unless it failed. The call, the SMS and
   192 are always on the screen; a `NotSent` answer leaves only them.
+- SOS carries the position (`src/lib/location.ts`, `expo-location`, only while in use): a recent last-known one, or
+  a new fix within 5 seconds, or none, and help goes out all the same. A new request waits for it before its row is
+  written, so it is sent once, with the map. The WhatsApp notice and the SMS end with the same Google Maps link
+  (`mapsUrl`). The permission is asked in setup and Perfil (`LocationCard`), never on the SOS screen.
 - The doctor report uses `expo-print` and `expo-sharing`.
 - The API client is generated from the OpenAPI document with orval, as in RevoSolutions.TVP's `web/`.
 - Content lives in `mobile/content/`: one Markdown file per article (frontmatter with title, theme, health-condition
@@ -295,8 +299,9 @@ phone's own plan) never reaches the server.
 
 - `POST sos` takes the device's request `Id` and `RequestedAt`, with the phone's offset, and returns its status. It is
   a `Notice` of kind `Sos` keyed by that id, so the outgoing queue can send it again safely, and the outbox sends it
-  within seconds through `SendNoticeHandler`, like any notice: `pedido_de_ajuda`, with the person and the day and
-  time on their clock.
+  within seconds through `SendNoticeHandler`, like any notice: `pedido_de_ajuda`, with the person, the day and
+  time on their clock, and the map link (`NoticeMessageBuilder.MapLink`) when the request brought `Latitude` and
+  `Longitude`, kept on the notice.
 - `GET sos/{id}` is the status the app shows: null while it waits for the outbox, then `NotSent` (the app offers the
   call and the SMS), `Sent`, `Delivered`, `Read` or `Failed`. Null for more than a few seconds means the send is
   failing and being retried, or there is no connection: the app offers the call then too.
@@ -407,6 +412,9 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - Processed outbox messages and expired refresh tokens are never deleted; add a cleanup when the tables grow.
 - SOS over WhatsApp has no cap per account; each one is paid. Add one if a bug or abuse ever sends too many.
+- A `NotSent` SOS only leaves the call and the SMS on the screen, without saying why. With RevenueCat in the app, the
+  screen should make clear that the WhatsApp notice is Premium (and tell a contact who hasn't linked up or answered
+  PARAR apart).
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (generated content, lint,
   types, tests). The API image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum
   of one replica, as in TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`,
@@ -416,7 +424,8 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
   **Remédios**, the form, the history, the reminder screen and the reminders (`src/lib/reminders.ts`). **Telefones**
   (the trusted contact on top, then the numbers by category) and **Artigos** read `src/content.ts`. **Relatório para
   a consulta** (`features/report`), opened from **Remédios**, builds the list and the regularity PDF on the device;
-  `expo-print` and `expo-sharing` are native, so it needs a new build. OAuth, FCM
+  `expo-print` and `expo-sharing` are native, so it needs a new build, as does `expo-location` for the SOS position;
+  the `pedido_de_ajuda` template has a third value for the map link. OAuth, FCM
   and APNs still have to be set up and the flow validated on real phones (`mobile/README.md`). A `POST sync` refused
   with 400 holds up the queue: it is retried, never dropped, and only the card on **Hoje** shows it. Setup gets the
   contact step with phase 5. A phone that ran the old reminder
