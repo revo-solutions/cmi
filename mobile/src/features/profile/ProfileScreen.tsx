@@ -12,6 +12,7 @@ import { useDisplayMode } from '../../lib/displayMode';
 import { deleteAccount, PendingChangesError, signOut } from '../../lib/session';
 import { requestSync } from '../../lib/sync';
 import { forgetGoogleSignIn } from '../auth/socialLogin';
+import { useContact } from '../contact/store';
 import { BatteryCard } from './BatteryCard';
 import { formatBirthDate } from './birthday';
 import { conditionLabels } from './health';
@@ -20,6 +21,7 @@ import { hasHealthAnswers, useProfile } from './store';
 export function ProfileScreen() {
   const navigation = useNavigation();
   const profile = useProfile();
+  const contact = useContact();
   const { largeText, setLargeText } = useDisplayMode();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -86,6 +88,16 @@ export function ProfileScreen() {
           </Card>
         </>
       )}
+      <Card>
+        <AppText variant="title" accessibilityRole="header">Contato de confiança</AppText>
+        <AppText>{contact ? `${contact.name}, ${contact.phone}` : 'Nenhum contato cadastrado'}</AppText>
+        <Button
+          label={contact ? 'Abrir' : 'Cadastrar'}
+          accessibilityLabel={contact ? `Abrir o contato de confiança, ${contact.name}` : 'Cadastrar um contato de confiança'}
+          variant="secondary"
+          onPress={() => navigation.navigate('Contact')}
+        />
+      </Card>
 
       <Card>
         <YesNo

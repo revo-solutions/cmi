@@ -9,6 +9,9 @@ import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
 import { reconcileReminders, reminderPermission, type ReminderPermission } from '../../lib/reminders';
 import { useSession } from '../../lib/session';
+import { ContactForm } from '../contact/ContactForm';
+import { SharingList } from '../contact/SharingList';
+import { useContact } from '../contact/store';
 import { useMedications } from '../medications/store';
 import { AboutForm } from '../profile/AboutScreen';
 import { BatteryCard } from '../profile/BatteryCard';
@@ -19,6 +22,7 @@ const titles: Record<Exclude<SetupStep, 'done'>, string> = {
   about: 'Sobre você',
   health: 'Sua saúde',
   medications: 'Seus remédios',
+  contact: 'Contato de confiança',
   permissions: 'Lembretes',
 };
 
@@ -41,6 +45,7 @@ export function SetupScreen() {
       {step === 'about' && <AboutForm submitLabel="Continuar" onSaved={next} />}
       {step === 'health' && <HealthForm submitLabel="Continuar" onSaved={afterHealth} onSkip={afterHealth} />}
       {step === 'medications' && <MedicationsStep onDone={next} />}
+      {step === 'contact' && <ContactStep onDone={next} />}
       {step === 'permissions' && <PermissionsStep onDone={next} />}
     </Screen>
   );
@@ -83,6 +88,41 @@ function MedicationsStep({ onDone }: { onDone: () => void }) {
       />
       {!medications?.length && <AppText variant="support">Você também pode cadastrar depois, na aba Remédios.</AppText>}
       <Button label={medications?.length ? 'Continuar' : 'Cadastrar depois'} variant={medications?.length ? 'primary' : 'secondary'} onPress={onDone} />
+    </>
+  );
+}
+
+// Optional. Once saved, the step shows the medications it now shares, to uncheck any before going on.
+function ContactStep({ onDone }: { onDone: () => void }) {
+  const contact = useContact();
+  const [editing, setEditing] = useState(false);
+
+  if (contact === undefined) {
+    return null;
+  }
+  if (!contact || editing) {
+    return (
+      <>
+        {!contact && (
+          <AppText>
+            Alguém da família ou um amigo para você ligar, mandar SMS e pedir ajuda pelo botão SOS. Pode ser
+            cadastrado agora ou depois, no Perfil.
+          </AppText>
+        )}
+        <ContactForm contact={contact} submitLabel="Salvar contato" onSaved={() => setEditing(false)} />
+        {!contact && <Button label="Cadastrar depois" variant="secondary" onPress={onDone} />}
+      </>
+    );
+  }
+  return (
+    <>
+      <Card>
+        <AppText variant="title">{contact.name}</AppText>
+        <AppText>{contact.phone}</AppText>
+        <Button label="Editar" accessibilityLabel={`Editar ${contact.name}`} variant="secondary" onPress={() => setEditing(true)} />
+      </Card>
+      <SharingList contact={contact} />
+      <Button label="Continuar" onPress={onDone} />
     </>
   );
 }

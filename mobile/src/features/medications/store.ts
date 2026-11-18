@@ -7,7 +7,7 @@ import { canEditAccount, localAccountId } from '../../lib/session';
 import { changeAccount, requestSync } from '../../lib/sync';
 import { sameTimes, type DoseRecord, type Medication, type Period } from './doses';
 
-type MedicationRow = {
+export type MedicationRow = {
   id: string;
   name: string;
   dose: string | null;
@@ -78,7 +78,7 @@ function apiTime(time: string) {
   return `${time}:00`;
 }
 
-async function queueMedication(transaction: SQLiteDatabase, row: MedicationRow | null) {
+export async function queueMedication(transaction: SQLiteDatabase, row: MedicationRow | null) {
   if (row) {
     const medication = toMedication(row);
     await enqueue(transaction, 'medications', { ...medication, times: medication.times.map(apiTime) });

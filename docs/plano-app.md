@@ -163,22 +163,26 @@ Revisar respostas pelo Perfil, abrir os ajustes para liberar lembretes e conferi
 
 Protótipo antes: o vínculo pelo WhatsApp, com o link, o QR code e os estados pendente, vinculado e parado.
 
-- [ ] Cadastro do contato: nome, telefone e parentesco do ponto de vista do familiar (`Relationship`: pai, mãe, avô,
-      avó, tio, tia, amigo, outro). Remover o contato limpa o compartilhamento de todos os medicamentos.
-- [ ] Ao cadastrar o contato, compartilhar os remédios que já existem e mostrar a lista para desmarcar algum
+- [x] Cadastro do contato: nome, telefone e parentesco do ponto de vista do familiar (`Relationship`: pai, mãe, avô,
+      avó, tio, tia, amigo, outro). Remover o contato limpa o compartilhamento de todos os medicamentos. Passo
+      opcional da configuração inicial, entre medicamentos e permissões, e tela pelo **Perfil**.
+- [x] Ao cadastrar o contato, compartilhar os remédios que já existem e mostrar a lista para desmarcar algum
       (compartilhado por padrão, `docs/escopo.md`).
-- [ ] Revogação por remédio ou do contato inteiro. Mostrar quando
+- [x] Revogação por remédio ou do contato inteiro. Mostrar quando
       a revogação ainda aguarda sincronização; ao remover, limpar os compartilhamentos locais e no servidor.
-- [ ] Ligar (`tel:`) e SMS com o texto pronto (`sms:`), sem a permissão de SMS.
-- [ ] Vínculo pelo WhatsApp (Premium): `GET contact/link`, link `wa.me` para o número do app com a mensagem pronta e o
+- [x] Ligar (`tel:`) e SMS com o texto pronto (`sms:`), sem a permissão de SMS.
+- [x] Vínculo pelo WhatsApp (Premium): `GET contact/link`, link `wa.me` para o número do app com a mensagem pronta e o
       código, o mesmo link em QR code (`react-native-qrcode-svg`) e o estado pendente, vinculado ou parado (PARAR).
       Explicar os avisos, inclusive aniversário. Atualizar ao voltar à tela; `404` pode ser contato ainda na fila.
-      Trocar o telefone exige novo vínculo. O número do app vem de `EXPO_PUBLIC_WHATSAPP_NUMBER`.
+      Trocar o telefone exige novo vínculo. O número do app vem de `EXPO_PUBLIC_WHATSAPP_NUMBER`. Protótipo no
+      canvas, em "Protótipos da fase 5". Esconder atrás do Premium na fase 6; até lá o servidor já não envia nada sem
+      Premium.
 - [ ] Botão **SOS · Pedir ajuda** no pé da **Hoje** e tela **SOS**, como no canvas. Grátis: ligar para o contato, SMS e 192. Premium: `POST sos` pela fila (id e
       `requestedAt` com o fuso) e consulta de `GET sos/{id}` até um estado final; enviado, entregue e lido em verde;
       sem internet guardado na fila; não enviado e falha oferecem ligar e **Tentar de novo**. Aguardando por mais de
       alguns segundos também oferece ligar. Informar se um pedido offline ainda pode sair quando a rede voltar.
       O `409` da sincronização não bloqueia a ajuda; não depender do WhatsApp para mostrar as alternativas.
+      Feito: o botão na **Hoje** e a tela com o grátis (ligar, SMS com o pedido escrito e 192). Falta o envio Premium.
 - [ ] Contato de confiança no topo da aba **Telefones**.
 
 **Aceite:** em dois aparelhos, vincular, enviar **PARAR**, retomar pelo código, trocar telefone e revogar. Conferir

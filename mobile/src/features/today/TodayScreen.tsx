@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { Check, History, Plus } from 'lucide-react-native';
+import { Check, History, Plus, TriangleAlert } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -59,6 +59,7 @@ export function TodayScreen() {
 
       <Button label="Ver histórico" variant="secondary" icon={History} onPress={() => navigation.navigate('History', {})} />
       <HealthCard />
+      <Button label="SOS · Pedir ajuda" variant="sos" icon={TriangleAlert} onPress={() => navigation.navigate('Sos')} />
     </Screen>
   );
 }

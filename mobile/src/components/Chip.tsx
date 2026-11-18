@@ -4,11 +4,13 @@ import { Pressable, StyleSheet } from 'react-native';
 import { colors, maxFontScale, touch } from '../theme';
 import { AppText } from './AppText';
 
-// One choice of a multiple-choice question, such as a health condition.
-export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+type ChipProps = { label: string; selected: boolean; onPress: () => void; radio?: boolean };
+
+// One choice of a multiple-choice question, such as a health condition, or of a single-choice one with radio.
+export function Chip({ label, selected, onPress, radio }: ChipProps) {
   return (
     <Pressable
-      accessibilityRole="checkbox"
+      accessibilityRole={radio ? 'radio' : 'checkbox'}
       accessibilityLabel={label}
       accessibilityState={{ checked: selected }}
       onPress={onPress}

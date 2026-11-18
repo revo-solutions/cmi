@@ -10,6 +10,8 @@ import { Button } from './components/Button';
 import { Screen } from './components/Screen';
 import { DeviceConflictScreen } from './features/auth/DeviceConflictScreen';
 import { SignInScreen } from './features/auth/SignInScreen';
+import { ContactScreen } from './features/contact/ContactScreen';
+import { WhatsAppLinkScreen } from './features/contact/WhatsAppLinkScreen';
 import { HistoryScreen } from './features/medications/HistoryScreen';
 import { MedicationFormScreen } from './features/medications/MedicationFormScreen';
 import { MedicationsScreen } from './features/medications/MedicationsScreen';
@@ -23,6 +25,7 @@ import {
   type SetupStep,
 } from './features/setup/setup';
 import { SetupScreen } from './features/setup/SetupScreen';
+import { SosScreen } from './features/sos/SosScreen';
 import { TodayScreen } from './features/today/TodayScreen';
 import { DisplayModeProvider } from './lib/displayMode';
 import { useHeartbeat } from './lib/heartbeat';
@@ -80,6 +83,9 @@ const RootStack = createNativeStackNavigator({
         ProfileAbout: AboutScreen,
         ProfileHealth: HealthScreen,
         History: HistoryScreen,
+        Contact: ContactScreen,
+        WhatsAppLink: WhatsAppLinkScreen,
+        Sos: SosScreen,
       },
     },
     Shared: {

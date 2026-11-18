@@ -4,8 +4,7 @@ import { setSetting, useRows } from '../../lib/db';
 import { localDate } from '../medications/doses';
 import { hasHealthAnswers, type Profile } from '../profile/store';
 
-// The trusted contact joins between medications and permissions with phase 5 (docs/plano-app.md).
-export const setupSteps = ['about', 'health', 'medications', 'permissions'] as const;
+export const setupSteps = ['about', 'health', 'medications', 'contact', 'permissions'] as const;
 
 export type SetupStep = (typeof setupSteps)[number] | 'done';
 
