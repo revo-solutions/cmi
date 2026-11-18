@@ -33,17 +33,25 @@ public class AccountService
     // sync is refused; its session stays valid, so it can take the account back.
     public async Task<TokenResponse?> Login(LoginProvider provider, string idToken, Guid deviceId)
     {
-        if (deviceId == Guid.Empty)
-        {
-            throw new DomainException("DeviceId is required.");
-        }
+        RequireDeviceId(deviceId);
 
-        var identity = await _validator.Validate(provider, idToken);
-        if (identity is null)
+        if (provider == LoginProvider.Development)
         {
             return null;
         }
 
+        var identity = await _validator.Validate(provider, idToken);
+        return identity is null ? null : await LoginAccount(provider, identity, deviceId);
+    }
+
+    public Task<TokenResponse> DevLogin(Guid deviceId)
+    {
+        RequireDeviceId(deviceId);
+        return LoginAccount(LoginProvider.Development, new SocialIdentity(deviceId.ToString("N"), null), deviceId);
+    }
+
+    private async Task<TokenResponse> LoginAccount(LoginProvider provider, SocialIdentity identity, Guid deviceId)
+    {
         var account = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.Provider == provider && a.Subject == identity.Subject);
         if (account is null)
         {
@@ -57,6 +65,14 @@ public class AccountService
         }
 
         return await IssueTokens(account.Id, deviceId);
+    }
+
+    private static void RequireDeviceId(Guid deviceId)
+    {
+        if (deviceId == Guid.Empty)
+        {
+            throw new DomainException("DeviceId is required.");
+        }
     }
 
     public async Task<TokenResponse?> Refresh(string refreshToken)

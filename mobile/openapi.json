@@ -82,6 +82,57 @@
         "security": []
       }
     },
+    "/api/v1/auth/dev-login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "AuthDevLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevLoginRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevLoginRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "tags": [
@@ -563,6 +614,18 @@
           "Ios"
         ]
       },
+      "DevLoginRequest": {
+        "required": [
+          "deviceId"
+        ],
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "DoseRecordModel": {
         "required": [
           "id",
@@ -628,7 +691,8 @@
       "LoginProvider": {
         "enum": [
           "Google",
-          "Apple"
+          "Apple",
+          "Development"
         ]
       },
       "LoginRequest": {

@@ -11,6 +11,7 @@ export type LoginProvider = typeof LoginProvider[keyof typeof LoginProvider];
 export const LoginProvider = {
   Google: 'Google',
   Apple: 'Apple',
+  Development: 'Development',
 } as const;
 
 export interface LoginRequest {
@@ -23,6 +24,10 @@ export interface TokenResponse {
   accessToken: string;
   expiresIn: number;
   refreshToken: string;
+}
+
+export interface DevLoginRequest {
+  deviceId: string;
 }
 
 export interface RefreshRequest {
@@ -228,6 +233,27 @@ export const authLogin = async (loginRequest: LoginRequest, options?: Parameters
     method: 'POST',
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(loginRequest)
+  }
+);}
+
+
+
+export const getAuthDevLoginUrl = () => {
+
+
+
+
+  return `/api/v1/auth/dev-login`
+}
+
+export const authDevLogin = async (devLoginRequest: DevLoginRequest, options?: Parameters<typeof apiClient>[1]): Promise<TokenResponse> => {
+
+  return apiClient<TokenResponse>(getAuthDevLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(devLoginRequest)
   }
 );}
 

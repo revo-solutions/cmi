@@ -4,4 +4,5 @@ public enum LoginProvider
 {
     Google,
     Apple,
+    Development,
 }

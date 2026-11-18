@@ -36,6 +36,19 @@ Gere um novo development build depois de configurar os clientes OAuth ou o Fireb
 
 Referências de configuração. [Google Sign-In no Expo](https://react-native-google-signin.github.io/docs/setting-up/expo) · [AppleAuthentication](https://docs.expo.dev/versions/latest/sdk/apple-authentication/) · [Credenciais de push no Expo](https://docs.expo.dev/push-notifications/push-notifications-setup/)
 
+### Conta de teste local
+
+Na raiz do repositório, inicie a API local no ambiente `Development` com a entrada de teste habilitada. No PowerShell:
+
+```powershell
+$env:DevLogin__Enabled = 'true'
+dotnet run --project src/RevoSolutions.CMI.API
+```
+
+Com o Metro e `EXPO_PUBLIC_API_URL` apontando para a API local, toque em **Entrar como conta de teste** no cliente de
+desenvolvimento. Cada instalação tem sua própria conta. Sair e entrar de novo na mesma instalação recupera os dados
+sincronizados dessa conta.
+
 ## Cliente da API
 
 Com a API de desenvolvimento em execução, use `npm run api` para salvar o OpenAPI e regerar o cliente. Use `OPENAPI_URL` se a API estiver em outra porta. `npm run api:generate` gera o cliente a partir do documento já salvo, sem acessar a API.

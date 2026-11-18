@@ -27,6 +27,18 @@ public class AuthController : ControllerBase
         return tokens is null ? Unauthorized(new ErrorResponse("Invalid ID token.")) : tokens;
     }
 
+    [HttpPost("dev-login")]
+    public async Task<ActionResult<TokenResponse>> DevLogin(
+        DevLoginRequest request, [FromServices] IWebHostEnvironment environment, [FromServices] IConfiguration configuration)
+    {
+        if (!environment.IsDevelopment() || !configuration.GetValue<bool>("DevLogin:Enabled"))
+        {
+            return NotFound();
+        }
+
+        return await _accountService.DevLogin(request.DeviceId);
+    }
+
     [HttpPost("refresh")]
     public async Task<ActionResult<TokenResponse>> Refresh(RefreshRequest request)
     {

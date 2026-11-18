@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react';
 
 import { ApiError } from '../api/client';
 import {
-  accountDelete, authLogin, authLogout, authRefresh, syncDownload, type LoginProvider, type TokenResponse,
+  accountDelete, authDevLogin, authLogin, authLogout, authRefresh, syncDownload, type LoginProvider, type TokenResponse,
 } from '../api/generated/client';
 import { blockedAccountKey, clearAccountData, hasPendingChanges, restoreAccountData } from './accountData';
 import { getSetting, setSetting } from './db';
@@ -110,7 +110,15 @@ function bearer(accessToken: string): RequestInit {
   return { headers: { Authorization: `Bearer ${accessToken}` } };
 }
 
-export async function signIn(provider: LoginProvider, idToken: string, suggestedName: string | null) {
+export function signIn(provider: LoginProvider, idToken: string, suggestedName: string | null) {
+  return startSession((deviceId) => authLogin({ provider, idToken, deviceId }), suggestedName);
+}
+
+export function signInDev() {
+  return startSession((deviceId) => authDevLogin({ deviceId }), 'Conta de teste');
+}
+
+async function startSession(authenticate: (deviceId: string) => Promise<TokenResponse>, suggestedName: string | null) {
   const previous = await loadSession();
   if (closing || (previous && !previous.expired)) {
     throw new SessionRequiredError();
@@ -120,7 +128,7 @@ export async function signIn(provider: LoginProvider, idToken: string, suggested
     deviceId = randomUUID();
     await setItemAsync(deviceKey, deviceId, secureOptions);
   }
-  const tokens = await authLogin({ provider, idToken, deviceId });
+  const tokens = await authenticate(deviceId);
   try {
     const accountId = accountIdOf(tokens.accessToken);
     const sameAccount = previous?.accountId === accountId;

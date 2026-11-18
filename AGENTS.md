@@ -186,6 +186,8 @@ JWT with a rotating refresh token, the same token scheme as RevoSolutions.TVP.
   audiences are `SocialLogin:GoogleClientIds` (the web client ID the app passes to Google Sign-In) and
   `SocialLogin:AppleClientIds` (the iOS bundle ID). An account is one provider + subject: the same person signing in
   with Apple and then Google gets two accounts.
+- Local development can use `POST auth/dev-login` in `Development` with `DevLogin:Enabled=true`. It issues a normal
+  session for a test account keyed by the installation's device ID. The app shows the test sign-in button in `__DEV__`.
 - The access token carries `sub` (the account) and `device_id` (a UUID the app generates once per install, sent at
   login). A refresh keeps the device. A device that is not `Account.ActiveDeviceId` gets 409 on sync; its session stays
   valid so `PUT account/active-device` can take the account back.

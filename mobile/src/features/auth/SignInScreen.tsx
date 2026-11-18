@@ -8,7 +8,7 @@ import { LoginProvider } from '../../api/generated/client';
 import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
 import { useDisplayMode } from '../../lib/displayMode';
-import { PendingChangesError, signIn, useSession } from '../../lib/session';
+import { PendingChangesError, signIn, signInDev, useSession } from '../../lib/session';
 import { colors, touch } from '../../theme';
 import { appleIdentity, googleIdentity } from './socialLogin';
 
@@ -27,7 +27,16 @@ export function SignInScreen() {
     }
   }, []);
 
-  async function enter(provider: LoginProvider) {
+  async function enterWithProvider(provider: LoginProvider) {
+    await enter(async () => {
+      const identity = await (provider === LoginProvider.Apple ? appleIdentity() : googleIdentity());
+      if (identity) {
+        await signIn(provider, identity.idToken, identity.name);
+      }
+    });
+  }
+
+  async function enter(authenticate: () => Promise<void>) {
     if (submitting.current) {
       return;
     }
@@ -39,10 +48,7 @@ export function SignInScreen() {
     setBusy(true);
     setMessage('');
     try {
-      const identity = await (provider === LoginProvider.Apple ? appleIdentity() : googleIdentity());
-      if (identity) {
-        await signIn(provider, identity.idToken, identity.name);
-      }
+      await authenticate();
     } catch (error) {
       if (error instanceof ApiUnavailableError) {
         setMessage('Não foi possível conectar. Confira sua internet e tente novamente.');
@@ -73,7 +79,7 @@ export function SignInScreen() {
 
         <View style={styles.actions} accessibilityState={{ busy }}>
           {session?.expired && <AppText>Entre de novo para acessar sua conta.</AppText>}
-          <Button label="Entrar com Google" variant="secondary" onPress={() => void enter(LoginProvider.Google)} disabled={busy} />
+          <Button label="Entrar com Google" variant="secondary" onPress={() => void enterWithProvider(LoginProvider.Google)} disabled={busy} />
           {appleAvailable && (
             <View pointerEvents={busy ? 'none' : 'auto'}>
               <AppleAuthentication.AppleAuthenticationButton
@@ -83,10 +89,11 @@ export function SignInScreen() {
                 buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
                 cornerRadius={18}
                 style={{ height: touch.main * Math.max(1, fontScale * textScale), opacity: busy ? 0.5 : 1 }}
-                onPress={() => void enter(LoginProvider.Apple)}
+                onPress={() => void enterWithProvider(LoginProvider.Apple)}
               />
             </View>
           )}
+          {__DEV__ && <Button label="Entrar como conta de teste" variant="secondary" onPress={() => void enter(signInDev)} disabled={busy} />}
           {busy && <AppText accessibilityLiveRegion="polite">Entrando…</AppText>}
           {message !== '' && (
             <AppText accessibilityRole="alert" accessibilityLiveRegion="assertive" color={colors.orchid900}>{message}</AppText>

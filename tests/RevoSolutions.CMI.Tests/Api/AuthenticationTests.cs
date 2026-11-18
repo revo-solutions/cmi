@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.IdentityModel.JsonWebTokens;
 using RevoSolutions.CMI.API.Models;
 using RevoSolutions.CMI.Domain.Enumerators;
 using RevoSolutions.CMI.Domain.Models;
@@ -35,6 +37,53 @@ public class AuthenticationTests
             CmiApiFactory.Json);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData("Development", false)]
+    [InlineData("Staging", true)]
+    [InlineData("Production", true)]
+    public async Task Dev_login_requires_development_and_opt_in(string environment, bool enabled)
+    {
+        await using var factory = _factory.WithWebHostBuilder(builder => builder
+            .UseEnvironment(environment)
+            .UseSetting("DevLogin:Enabled", enabled.ToString())
+            .UseSetting("Jwt:SigningKey", "test-signing-key-only-for-integration-tests"));
+
+        var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/dev-login", new DevLoginRequest(Guid.NewGuid()));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Dev_login_issues_a_session_for_the_same_account_on_the_same_installation()
+    {
+        await using var factory = _factory.WithWebHostBuilder(builder => builder
+            .UseEnvironment("Development")
+            .UseSetting("DevLogin:Enabled", "true"));
+        using var client = factory.CreateClient();
+        var deviceId = Guid.NewGuid();
+
+        async Task<TokenResponse> Login(Guid id)
+        {
+            var response = await client.PostAsJsonAsync("/api/v1/auth/dev-login", new DevLoginRequest(id));
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<TokenResponse>())!;
+        }
+
+        var first = await Login(deviceId);
+        var again = await Login(deviceId);
+        var other = await Login(Guid.NewGuid());
+
+        var accountId = new JsonWebToken(first.AccessToken).Subject;
+        new JsonWebToken(again.AccessToken).Subject.Should().Be(accountId);
+        new JsonWebToken(other.AccessToken).Subject.Should().NotBe(accountId);
+        again.RefreshToken.Should().NotBe(first.RefreshToken);
+        (await _factory.Client(again).GetAsync("/api/v1/sync")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await Refresh(again.RefreshToken)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var social = await client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(LoginProvider.Development, deviceId.ToString("N"), deviceId), CmiApiFactory.Json);
+        social.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
