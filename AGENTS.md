@@ -52,6 +52,7 @@ starting value: keep each one in a single setting.
 - Social login is mandatory at setup, with no passwords: Google on Android; Apple and Google on iOS (Apple requires
   its own login whenever Google's is offered). The account follows the person to any phone: medications, history,
   contact, profile and Premium. Account deletion is available in the app and deletes everything on the server.
+  A dialog asks the person to type their profile name (or `EXCLUIR` if it is missing) before the final confirmation.
 - Setup order: login, name (prefilled from the login; the notices use it) and birth date (required, in large day/month/year
   fields that start empty, not the system calendar), health questionnaire (one
   screen, with a visible "Pular"; a card on **Hoje** asks again days later), medications, trusted contact (optional),

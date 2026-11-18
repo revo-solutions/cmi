@@ -1,6 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
 import { useRef, useState } from 'react';
-import { Alert } from 'react-native';
 
 import { ApiUnavailableError } from '../../api/client';
 import { AppText } from '../../components/AppText';
@@ -15,6 +14,7 @@ import { forgetGoogleSignIn } from '../auth/socialLogin';
 import { useContact } from '../contact/store';
 import { BatteryCard } from './BatteryCard';
 import { formatBirthDate } from './birthday';
+import { DeleteAccountPrompt } from './DeleteAccountPrompt';
 import { conditionLabels } from './health';
 import { hasHealthAnswers, useProfile } from './store';
 
@@ -25,6 +25,7 @@ export function ProfileScreen() {
   const { largeText, setLargeText, growsText } = useDisplayMode();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [deletePromptOpen, setDeletePromptOpen] = useState(false);
   const submitting = useRef(false);
 
   async function close(remove: boolean) {
@@ -50,13 +51,6 @@ export function ProfileScreen() {
       submitting.current = false;
       setBusy(false);
     }
-  }
-
-  function confirmDelete() {
-    Alert.alert('Excluir sua conta?', 'Seus dados e registros serão apagados. Esta decisão é definitiva.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir conta', style: 'destructive', onPress: () => void close(true) },
-    ]);
   }
 
   return (
@@ -117,10 +111,19 @@ export function ProfileScreen() {
         <AppText>Sair mantém sua conta e seus dados salvos no servidor.</AppText>
         <Button label="Sair" variant="secondary" onPress={() => void close(false)} disabled={busy} />
         <AppText>Excluir a conta apaga seus dados e lembretes.</AppText>
-        <Button label="Excluir conta" variant="secondary" onPress={confirmDelete} disabled={busy} />
+        <Button label="Excluir conta" variant="secondary" onPress={() => setDeletePromptOpen(true)} disabled={busy || !profile} />
         {busy && <AppText accessibilityLiveRegion="polite">Aguarde…</AppText>}
         {message !== '' && <AppText accessibilityRole="alert" accessibilityLiveRegion="assertive">{message}</AppText>}
       </Card>
+      {deletePromptOpen && profile && (
+        <DeleteAccountPrompt
+          key={profile.name} name={profile.name} onCancel={() => setDeletePromptOpen(false)}
+          onConfirm={() => {
+            setDeletePromptOpen(false);
+            void close(true);
+          }}
+        />
+      )}
     </Screen>
   );
 }

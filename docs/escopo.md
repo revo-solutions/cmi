@@ -93,7 +93,7 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
   - **Condições** (múltipla escolha): pressão alta, diabetes, colesterol alto, problema no coração, artrose ou artrite, osteoporose, tireoide, depressão ou ansiedade, problema de memória, asma ou bronquite crônica, AVC (derrame), problema nos rins, outra (texto livre) e nenhuma.
   - **Três perguntas de sim ou não:** mora sozinho(a)? Caiu nos últimos 12 meses? Tem dificuldade para enxergar? A última pode ligar o modo de letras grandes e alto contraste.
   - **Usos:** artigos sugeridos, conhecer a base de usuários, pesquisa para a futura linha de suplementos e contexto para o futuro chat com IA. A resposta sobre quedas mede o interesse no [spike de detecção de queda](#spike-detecção-de-possíveis-quedas).
-- **Excluir conta.** Dentro do app, como a Apple e a Google exigem. A Google também exige um link na web para pedir a exclusão. Excluir a conta apaga os dados do servidor.
+- **Excluir conta.** Dentro do app, como a Apple e a Google exigem. Uma janela pede o nome salvo no perfil (ou `EXCLUIR` se estiver sem nome) e depois mostra a confirmação final. A Google também exige um link na web para pedir a exclusão. Excluir a conta apaga os dados do servidor.
 
 ### Planos e cobrança
 
