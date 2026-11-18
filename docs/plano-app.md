@@ -28,11 +28,15 @@ paralelo com os lembretes.
 ## Decisões
 
 As decisões tomadas antes de começar estão no `AGENTS.md` (seção Mobile e "Not done yet"), no escopo e no guia da
-marca. Ao tomar uma nova, registre lá e tire daqui. Falta uma:
+marca. Ao tomar uma nova, registre lá e tire daqui. Faltam estas:
 
 - **Hospedagem da API.** Azure Container Apps com réplica mínima 1, como no TVP, ou um VPS com Docker Compose
   ([arquitetura](arquitetura.md#hospedagem)). Decidir antes de a fase 3 sair da rede local; o deploy, as migrations e
   o backup diário vêm com a escolha.
+- **Botão SOS na Hoje.** Hoje fica no fim da tela e, num celular pequeno ou com a fonte grande, só aparece depois de
+  rolar. Fixo no rodapé, acima das abas, ocupa uns 90 dp o tempo todo (cerca de 10% da tela de um S26 Ultra, mais
+  num celular menor) e fica mais exposto a toques sem querer, que pedem ajuda pelo WhatsApp ao abrir a tela.
+  Decidir com os primeiros usuários: observar se acham o SOS e se tocam nele sem querer.
 
 ## Fase 0: validar o motor de lembretes
 

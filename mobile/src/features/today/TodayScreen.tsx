@@ -14,18 +14,22 @@ import { colors, text } from '../../theme';
 import { nextDose, type Dose } from '../medications/doses';
 import { formatClock, formatDay } from '../medications/format';
 import { useToday } from '../medications/useToday';
+import { useProfile } from '../profile/store';
+import { greeting } from './greeting';
 import { HealthCard } from './HealthCard';
 import { ReminderPermissionCard } from './ReminderPermissionCard';
 import { SyncStatusCard } from './SyncStatusCard';
 
 export function TodayScreen() {
   const navigation = useNavigation();
-  const { date, medications, doses } = useToday();
+  const { now, date, medications, doses } = useToday();
+  const profile = useProfile();
   const next = doses ? nextDose(doses) : null;
   const hasMedications = medications?.some((m) => !m.deleted);
 
   return (
     <Screen title="Hoje" subtitle={formatDay(date)} onProfile={() => navigation.navigate('Profile')}>
+      {profile && <AppText variant="title">{greeting(now, profile.name)}</AppText>}
       <ReminderPermissionCard />
       <SyncStatusCard />
 
