@@ -97,6 +97,10 @@ export const migrations = [
   ALTER TABLE sos_requests ADD COLUMN latitude REAL;
   ALTER TABLE sos_requests ADD COLUMN longitude REAL;
   `,
+  `
+  -- Why the server didn't send a NotSent request (SosNotSentReason), so the screen can say so.
+  ALTER TABLE sos_requests ADD COLUMN reason TEXT;
+  `,
 ];
 
 export function pendingMigrations(version: number) {

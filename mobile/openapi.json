@@ -964,6 +964,14 @@
           }
         }
       },
+      "SosNotSentReason": {
+        "enum": [
+          "NoPremium",
+          "NotLinked",
+          "Stopped",
+          null
+        ]
+      },
       "SosStatusModel": {
         "required": [
           "id",
@@ -982,6 +990,16 @@
               },
               {
                 "$ref": "#/components/schemas/NoticeStatus"
+              }
+            ]
+          },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SosNotSentReason"
               }
             ]
           }

@@ -1,7 +1,7 @@
 import { randomUUID } from 'expo-crypto';
 
 import { ApiUnavailableError } from '../../api/client';
-import { NoticeStatus, sosGet, sosSend, type SosStatusModel } from '../../api/generated/client';
+import { NoticeStatus, sosGet, sosSend, type SosNotSentReason, type SosStatusModel } from '../../api/generated/client';
 import { getDatabase, useRows, writeTransaction } from '../../lib/db';
 import type { Position } from '../../lib/location';
 import { withSession } from '../../lib/session';
@@ -16,10 +16,12 @@ export const pollLimitMs = 2 * 60_000;
 
 type HelpRow = {
   id: string; requested_at: string; accepted: number; status: NoticeStatus; last_error: string | null;
-  latitude: number | null; longitude: number | null;
+  latitude: number | null; longitude: number | null; reason: SosNotSentReason;
 };
 
-export type HelpRequest = { id: string; requestedAt: string; status: NoticeStatus; offline: boolean; located: boolean };
+export type HelpRequest = {
+  id: string; requestedAt: string; status: NoticeStatus; offline: boolean; located: boolean; reason: SosNotSentReason;
+};
 
 export type HelpView = 'sending' | 'slow' | 'offline' | 'sent' | 'delivered' | 'read' | 'notSent' | 'failed';
 
@@ -56,7 +58,7 @@ export function useHelpRequest(id: string | null): HelpRequest | null | undefine
   return rows && (row
     ? {
       id: row.id, requestedAt: row.requested_at, status: row.status, offline: row.last_error === 'connection',
-      located: row.latitude !== null,
+      located: row.latitude !== null, reason: row.reason,
     }
     : null);
 }
@@ -101,7 +103,8 @@ async function refresh(row: HelpRow) {
   }
   await writeTransaction(async (transaction) => {
     await transaction.runAsync(
-      'UPDATE sos_requests SET accepted = 1, status = ?, last_error = NULL WHERE id = ?', result.status, row.id,
+      'UPDATE sos_requests SET accepted = 1, status = ?, reason = ?, last_error = NULL WHERE id = ?',
+      result.status, result.reason ?? null, row.id,
     );
   });
 }

@@ -2,7 +2,7 @@ import { beforeEach, expect, jest, test } from '@jest/globals';
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 
 import { ApiUnavailableError } from '../../api/client';
-import { NoticeStatus, sosGet, sosSend } from '../../api/generated/client';
+import { NoticeStatus, SosNotSentReason, sosGet, sosSend } from '../../api/generated/client';
 import { migrations } from '../../lib/db';
 import {
   helpView, localInstant, refreshHelpRequest, requestHelp, reuseMs, sendHelpRequests, slowMs, type HelpRequest,
@@ -51,7 +51,7 @@ beforeEach(() => {
 
 const asked = '2026-11-18T14:32:00-03:00';
 const request = (status: HelpRequest['status'], offline = false): HelpRequest =>
-  ({ id: 'sos', requestedAt: asked, status, offline, located: false });
+  ({ id: 'sos', requestedAt: asked, status, offline, located: false, reason: null });
 
 test('a request reads as its delivery status, and as slow or offline while the server has none', () => {
   const at = Date.parse(asked);
@@ -113,4 +113,12 @@ test('a request waits offline, then is sent with its id and read back once the s
 
   await sendHelpRequests();
   expect(get).toHaveBeenCalledTimes(1);
+});
+
+test('a request the server did not send keeps why', async () => {
+  send.mockImplementation(async ({ id }) => ({ id, status: NoticeStatus.NotSent, reason: SosNotSentReason.NoPremium }));
+  const id = await requestHelp();
+  await refreshHelpRequest(id);
+  expect(mockSql.prepare('SELECT status, reason FROM sos_requests WHERE id = ?').get(id))
+    .toEqual({ status: NoticeStatus.NotSent, reason: SosNotSentReason.NoPremium });
 });

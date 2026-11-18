@@ -60,9 +60,19 @@ export const NoticeStatus = {
   Failed: 'Failed',
 } as const;
 
+export type SosNotSentReason = typeof SosNotSentReason[keyof typeof SosNotSentReason] | null;
+
+
+export const SosNotSentReason = {
+  NoPremium: 'NoPremium',
+  NotLinked: 'NotLinked',
+  Stopped: 'Stopped',
+} as const;
+
 export interface SosStatusModel {
   id: string;
   status: null | NoticeStatus;
+  reason?: null | SosNotSentReason;
 }
 
 export interface ProfileModel {

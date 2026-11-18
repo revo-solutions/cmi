@@ -3,7 +3,7 @@ import { Check, Phone, RotateCw, UserPlus, WifiOff, X, type LucideIcon } from 'l
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
-import { NoticeStatus } from '../../api/generated/client';
+import { NoticeStatus, SosNotSentReason } from '../../api/generated/client';
 import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -106,11 +106,9 @@ function HelpStatus({ request, name, onRetry }: { request: HelpRequest; name: st
 
   const time = request.requestedAt.slice(11, 16);
   const view = helpView(request, now);
-  if (view === 'notSent') {
-    return null;
-  }
   const where = request.located ? ' A mensagem leva o lugar onde você está.' : '';
-  const contents: Record<Exclude<HelpView, 'notSent'>, Content> = {
+  const contents: Record<HelpView, Content> = {
+    notSent: { tone: 'wait', title: `Não avisamos ${name} pelo WhatsApp`, text: notSentText(request.reason, name) },
     sending: sending(name),
     slow: { tone: 'wait', title: 'O envio está demorando', text: `Se precisar, ligue para ${name} enquanto isso.` },
     offline: {
@@ -119,7 +117,7 @@ function HelpStatus({ request, name, onRetry }: { request: HelpRequest; name: st
     },
     sent: {
       icon: Check, tone: 'good', title: 'Pedido de ajuda enviado',
-      text: `Enviamos seu pedido das ${time} para ${name} pelo WhatsApp.${where}`,
+      text: `Enviamos automaticamente seu pedido das ${time} para ${name} pelo WhatsApp.${where}`,
     },
     delivered: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `Sua mensagem chegou ao WhatsApp de ${name}.${where}` },
     read: { icon: Check, tone: 'good', title: 'Pedido de ajuda enviado', text: `${name} leu sua mensagem no WhatsApp.${where}` },
@@ -131,6 +129,15 @@ function HelpStatus({ request, name, onRetry }: { request: HelpRequest; name: st
       {view === 'failed' && <Button label="Tentar de novo" variant="secondary" icon={RotateCw} onPress={onRetry} />}
     </StatusView>
   );
+}
+
+function notSentText(reason: SosNotSentReason, name: string) {
+  switch (reason) {
+    case SosNotSentReason.NoPremium: return 'O aviso automático pelo WhatsApp faz parte do Premium.';
+    case SosNotSentReason.NotLinked: return `${name} ainda não ativou os avisos no WhatsApp.`;
+    case SosNotSentReason.Stopped: return `${name} pediu para parar os avisos no WhatsApp.`;
+    default: return 'Não foi possível mandar a mensagem desta vez.';
+  }
 }
 
 function StatusView({ content, children }: { content: Content; children?: ReactNode }) {

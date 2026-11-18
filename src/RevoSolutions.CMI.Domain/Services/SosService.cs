@@ -14,12 +14,21 @@ namespace RevoSolutions.CMI.Domain.Services;
 public class SosService
 {
     private readonly IRepository<Notice> _notices;
+    private readonly IRepository<Account> _accounts;
+    private readonly IRepository<Contact> _contacts;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentAccount _currentAccount;
 
-    public SosService(IRepository<Notice> notices, IUnitOfWork unitOfWork, ICurrentAccount currentAccount)
+    public SosService(
+        IRepository<Notice> notices,
+        IRepository<Account> accounts,
+        IRepository<Contact> contacts,
+        IUnitOfWork unitOfWork,
+        ICurrentAccount currentAccount)
     {
         _notices = notices;
+        _accounts = accounts;
+        _contacts = contacts;
         _unitOfWork = unitOfWork;
         _currentAccount = currentAccount;
     }
@@ -52,7 +61,27 @@ public class SosService
         var notice = await _notices.FirstOrDefault(n => n.Key == key)
             ?? throw new DomainNotFoundException("No such help request.");
 
-        return new SosStatusModel(id, notice.Status);
+        return notice.Status == NoticeStatus.NotSent
+            ? new SosStatusModel(id, notice.Status, await NotSentReason())
+            : new SosStatusModel(id, notice.Status);
+    }
+
+    // Read now, in SendNoticeHandler's order: what would have to change for the next request to go out.
+    private async Task<SosNotSentReason?> NotSentReason()
+    {
+        var accountId = _currentAccount.AccountId;
+        if ((await _accounts.FirstOrDefault(a => a.Id == accountId))?.IsPremium(DateTime.UtcNow) != true)
+        {
+            return SosNotSentReason.NoPremium;
+        }
+
+        var contact = await _contacts.FirstOrDefault(c => c.AccountId == accountId);
+        if (contact?.WhatsAppNumber is null || contact.LinkedAt is null)
+        {
+            return SosNotSentReason.NotLinked;
+        }
+
+        return contact.StoppedAt is null ? null : SosNotSentReason.Stopped;
     }
 
     private string Key(Guid id) => $"{_currentAccount.AccountId}:{NoticeKind.Sos}:{id}";

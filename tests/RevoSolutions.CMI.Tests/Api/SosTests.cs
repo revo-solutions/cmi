@@ -134,18 +134,24 @@ public class SosTests
     }
 
     [Fact]
-    public async Task Without_premium_or_a_linked_contact_the_sos_is_not_sent_and_the_app_is_told()
+    public async Task Without_premium_or_a_linked_contact_the_sos_is_not_sent_and_the_app_is_told_why()
     {
         var free = await Person(premium: false);
         var unlinked = await Person(premium: true, link: false);
+        var stopped = await Person(premium: true);
+        (await _factory.ReceiveWhatsApp(stopped.WhatsApp, "PARAR")).EnsureSuccessStatusCode();
 
-        foreach (var person in new[] { free, unlinked })
+        foreach (var (person, reason) in new[]
+        {
+            (free, SosNotSentReason.NoPremium), (unlinked, SosNotSentReason.NotLinked), (stopped, SosNotSentReason.Stopped),
+        })
         {
             var sos = new SosModel(Guid.NewGuid(), RequestedAt);
             await Send(person, sos);
             await _factory.ProcessOutbox();
 
-            (await Status(person, sos.Id)).Should().Be(NoticeStatus.NotSent);
+            (await person.Phone.GetFromJsonAsync<SosStatusModel>($"/api/v1/sos/{sos.Id}", CmiApiFactory.Json))
+                .Should().Be(new SosStatusModel(sos.Id, NoticeStatus.NotSent, reason));
             _factory.WhatsApp.SentTo(person.WhatsApp).Should().NotContain(m => m.Template != null);
         }
     }

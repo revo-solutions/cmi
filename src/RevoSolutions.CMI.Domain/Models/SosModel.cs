@@ -7,5 +7,5 @@ namespace RevoSolutions.CMI.Domain.Models;
 // time, reaches the family as a map link.
 public record SosModel(Guid Id, DateTimeOffset RequestedAt, double? Latitude = null, double? Longitude = null);
 
-// Status is null while the request waits for the outbox, a few seconds.
-public record SosStatusModel(Guid Id, NoticeStatus? Status);
+// Status is null while the request waits for the outbox, a few seconds. Reason comes with NotSent.
+public record SosStatusModel(Guid Id, NoticeStatus? Status, SosNotSentReason? Reason = null);

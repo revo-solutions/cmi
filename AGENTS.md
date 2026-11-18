@@ -148,7 +148,7 @@ starting value: keep each one in a single setting.
 - Opening **SOS** with a contact asks for help over WhatsApp: a row in `sos_requests` (apart from the outbox, so a
   blocked sync doesn't hold it back) sent by `POST sos` with its id and the phone's offset, then read by
   `GET sos/{id}`. Opening it again within 5 minutes shows the same request unless it failed. The call, the SMS and
-  192 are always on the screen; a `NotSent` answer leaves only them.
+  192 are always on the screen; a `NotSent` answer says why (its `Reason`) above them.
 - SOS carries the position (`src/lib/location.ts`, `expo-location`, only while in use): a recent last-known one, or
   a new fix within 5 seconds, or none, and help goes out all the same. A new request waits for it before its row is
   written, so it is sent once, with the map. The WhatsApp notice and the SMS end with the same Google Maps link
@@ -303,7 +303,7 @@ phone's own plan) never reaches the server.
   time on their clock, and the map link (`NoticeMessageBuilder.MapLink`) when the request brought `Latitude` and
   `Longitude`, kept on the notice.
 - `GET sos/{id}` is the status the app shows: null while it waits for the outbox, then `NotSent` (the app offers the
-  call and the SMS), `Sent`, `Delivered`, `Read` or `Failed`. Null for more than a few seconds means the send is
+  call and the SMS) with a `Reason`, read when asked: `NoPremium`, `NotLinked` or `Stopped` (PARAR), `Sent`, `Delivered`, `Read` or `Failed`. Null for more than a few seconds means the send is
   failing and being retried, or there is no connection: the app offers the call then too.
 - A device that is no longer the active one may still ask for help.
 
@@ -412,9 +412,6 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - Processed outbox messages and expired refresh tokens are never deleted; add a cleanup when the tables grow.
 - SOS over WhatsApp has no cap per account; each one is paid. Add one if a bug or abuse ever sends too many.
-- A `NotSent` SOS only leaves the call and the SMS on the screen, without saying why. With RevenueCat in the app, the
-  screen should make clear that the WhatsApp notice is Premium (and tell a contact who hasn't linked up or answered
-  PARAR apart).
 - CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (generated content, lint,
   types, tests). The API image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum
   of one replica, as in TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`,
