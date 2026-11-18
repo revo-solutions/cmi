@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { DevicePlatform, syncHeartbeat } from '../api/generated/client';
+import { sendHelpRequests } from '../features/sos/sos';
 import { getSetting, setSetting } from './db';
 import { loadSession, withSession } from './session';
 import { flushOutbox, isSyncBlocked, rememberSyncConflict } from './sync';
@@ -47,7 +48,7 @@ function sendHeartbeat() {
 }
 
 defineTask(periodicTask, async () => {
-  const results = await Promise.allSettled([sendHeartbeat(), flushOutbox()]);
+  const results = await Promise.allSettled([sendHeartbeat(), flushOutbox(), sendHelpRequests()]);
   return results.some((result) => result.status === 'rejected')
     ? BackgroundTask.BackgroundTaskResult.Failed
     : BackgroundTask.BackgroundTaskResult.Success;

@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 
 import { ApiError, ApiUnavailableError } from '../api/client';
 import { accountActivateDevice, syncDownload, syncUpload } from '../api/generated/client';
+import { sendHelpRequests } from '../features/sos/sos';
 import { blockedAccountKey, restoreAccountData } from './accountData';
 import { getDatabase, getSetting, setSetting, useRows, writeTransaction } from './db';
 import { nextAttempt, outboxBatch, recoverableDoses, retryStartMs, type OutboxRow } from './outbox';
@@ -107,18 +108,23 @@ export function useOutboxSync(accountId: string | undefined) {
     if (!accountId) {
       return;
     }
-    void requestSync();
+    // Help requests go along, on their own: a blocked sync doesn't hold them back.
+    const send = (force = false) => {
+      void requestSync(force);
+      void sendHelpRequests().catch(() => undefined);
+    };
+    send();
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        void requestSync();
+        send();
       }
     });
     const network = addNetworkStateListener(({ isConnected }) => {
       if (isConnected) {
-        void requestSync(true);
+        send(true);
       }
     });
-    const timer = setInterval(() => { void requestSync(); }, retryStartMs);
+    const timer = setInterval(send, retryStartMs);
     return () => {
       appState.remove();
       network.remove();

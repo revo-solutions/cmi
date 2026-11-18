@@ -143,12 +143,16 @@ starting value: keep each one in a single setting.
   SQLite transaction. The OAuth IDs, API URL and push credentials are configured as described in `mobile/README.md`.
 - Purchases use the RevenueCat SDK (`react-native-purchases`) with the account id as the app user id. The app reads
   the entitlement from the SDK only to show what is unlocked.
+- Opening **SOS** with a contact asks for help over WhatsApp: a row in `sos_requests` (apart from the outbox, so a
+  blocked sync doesn't hold it back) sent by `POST sos` with its id and the phone's offset, then read by
+  `GET sos/{id}`. Opening it again within 5 minutes shows the same request unless it failed. The call, the SMS and
+  192 are always on the screen; a `NotSent` answer leaves only them.
 - The doctor report uses `expo-print` and `expo-sharing`.
 - The API client is generated from the OpenAPI document with orval, as in RevoSolutions.TVP's `web/`.
 - Content lives in `mobile/content/`: one Markdown file per article (frontmatter with title, theme, health-condition
   codes and date), `telefones.json` (category, name, number, whether it is an emergency number) and the Premium promo
   texts. No admin UI and no content endpoint; new content ships with EAS Update. `npm run content` turns `content/`
-  into a TypeScript module that is committed, and CI checks it is current. Articles render a small Markdown subset
+  into `src/content.ts`, which is committed, and CI checks it is current. Articles render a small Markdown subset
   (headings, paragraphs, lists, bold) with the app's own components, so they follow the system font and TalkBack;
   add a Markdown library only when the content needs more.
 - The app is pt-BR only: write user-facing text in Portuguese and don't add an i18n layer until a second language is
@@ -401,16 +405,17 @@ What the MVP includes and what comes after it: `docs/escopo.md`.
 - The eight templates still have to be submitted and approved in WhatsApp Manager before anything reaches a family member.
 - Processed outbox messages and expired refresh tokens are never deleted; add a cleanup when the tables grow.
 - SOS over WhatsApp has no cap per account; each one is paid. Add one if a bug or abuse ever sends too many.
-- CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (lint, types). The API
-  image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum of one replica, as in
-  TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`, "Hospedagem"). The
-  rollout step, applying the migrations and the daily backup come with that choice.
+- CI (`.github/workflows/ci.yml`) checks the back end (format, build, tests) and the app (generated content, lint,
+  types, tests). The API image is published, but where it runs isn't chosen yet: Azure Container Apps with a minimum
+  of one replica, as in TVP (`docs/deploy-azure.md` there), or a VPS with Docker Compose (`docs/arquitetura.md`,
+  "Hospedagem"). The rollout step, applying the migrations and the daily backup come with that choice.
 - The Expo app has social login, the account sessions, sync through the outgoing queue, the heartbeat and the ping,
   the first-run setup with the profile and the health questionnaire, and the medication flow: tabs **Hoje** and
-  **Remédios**, the form, the history, the reminder screen and the reminders (`src/lib/reminders.ts`). OAuth, FCM
+  **Remédios**, the form, the history, the reminder screen and the reminders (`src/lib/reminders.ts`). **Telefones**
+  (the trusted contact on top, then the numbers by category) and **Artigos** read `src/content.ts`. OAuth, FCM
   and APNs still have to be set up and the flow validated on real phones (`mobile/README.md`). A `POST sync` refused
   with 400 holds up the queue: it is retried, never dropped, and only the card on **Hoje** shows it. Setup gets the
-  contact step with phase 5. Add the other tabs as their features become usable. A phone that ran the old reminder
+  contact step with phase 5. A phone that ran the old reminder
   test needs the app reinstalled to drop its leftover test notifications. Validate the reminders on Android and a real iPhone
   before calling the flow done. `react-native-screens` is native, so running the navigation needs a development or
   preview build made after it was added.

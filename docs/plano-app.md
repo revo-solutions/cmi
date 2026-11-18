@@ -177,13 +177,13 @@ Protótipo antes: o vínculo pelo WhatsApp, com o link, o QR code e os estados p
       Trocar o telefone exige novo vínculo. O número do app vem de `EXPO_PUBLIC_WHATSAPP_NUMBER`. Protótipo no
       canvas, em "Protótipos da fase 5". Esconder atrás do Premium na fase 6; até lá o servidor já não envia nada sem
       Premium.
-- [ ] Botão **SOS · Pedir ajuda** no pé da **Hoje** e tela **SOS**, como no canvas. Grátis: ligar para o contato, SMS e 192. Premium: `POST sos` pela fila (id e
+- [x] Botão **SOS · Pedir ajuda** no pé da **Hoje** e tela **SOS**, como no canvas. Grátis: ligar para o contato, SMS e 192. Premium: `POST sos` pela fila (id e
       `requestedAt` com o fuso) e consulta de `GET sos/{id}` até um estado final; enviado, entregue e lido em verde;
       sem internet guardado na fila; não enviado e falha oferecem ligar e **Tentar de novo**. Aguardando por mais de
       alguns segundos também oferece ligar. Informar se um pedido offline ainda pode sair quando a rede voltar.
       O `409` da sincronização não bloqueia a ajuda; não depender do WhatsApp para mostrar as alternativas.
-      Feito: o botão na **Hoje** e a tela com o grátis (ligar, SMS com o pedido escrito e 192). Falta o envio Premium.
-- [ ] Contato de confiança no topo da aba **Telefones**.
+      O pedido sai ao abrir a tela; abrir de novo em 5 minutos mostra o mesmo pedido, salvo se falhou. Até a fase 6, o
+      app pede sempre e o servidor responde `NotSent` sem Premium, o que deixa só ligar e o SMS.
 
 **Aceite:** em dois aparelhos, vincular, enviar **PARAR**, retomar pelo código, trocar telefone e revogar. Conferir
 em mensagens de teste que a API só inclui remédios compartilhados. Testar SOS pendente, entregue e com falha,
@@ -199,6 +199,7 @@ Protótipo antes: a tela do Premium, que pesa na conversão e passa pela revisã
       Premium libera. Exibir o preço retornado pela loja, a elegibilidade para o teste e o que será cobrado.
       Tratar cancelamento e erro da compra, inclusive para quem não cadastrou contato.
 - [ ] O app lê o entitlement só para mostrar o que está liberado: vínculo, SOS pelo WhatsApp e relatório em PDF.
+      Sem o entitlement, a tela **SOS** não cria o pedido pelo WhatsApp.
       Tratar estado pendente, offline e expirado. O servidor libera envios só após o webhook. Expirar a assinatura
       pausa os envios e mantém o vínculo para uma futura reativação.
 - [ ] Notificação local dois dias antes do fim do teste, com a data e o valor da primeira cobrança, a partir da
@@ -227,13 +228,18 @@ removido e dose corrigida; repetir após troca de celular. Conferir paginação 
 
 ## Fase 8: telefones úteis e artigos
 
-- [ ] `content/telefones.json` com 192, 193, 190, 199, Disque 100, 136 e 188 (categoria, nome, número, se é de
-      emergência). Tela por categoria, emergências primeiro, com botão de ligar.
-- [ ] Seleção inicial de artigos em `content/artigos/` (título, tema, códigos de condição e data no frontmatter).
-- [ ] Lista de artigos por tema, com os que combinam com as condições do perfil primeiro, e a tela de leitura.
-- [ ] Abas **Telefones** e **Artigos** na barra de abas, como no canvas.
+- [x] `content/telefones.json` com 192, 193, 190, 199, Disque 100, 136 e 188 (categoria, nome, número, se é de
+      emergência). Tela por categoria, emergências primeiro, com botão de ligar. O CVV (188) fica numa categoria
+      própria marcada como emergência, para vir no alto e nunca ter divulgação por perto.
+- [x] Seleção inicial de artigos em `content/artigos/` (título, tema, códigos de condição e data no frontmatter):
+      seis artigos; revisar o texto antes do lançamento.
+- [x] Lista de artigos por tema, com os que combinam com as condições do perfil primeiro ("Para você"), e a tela de
+      leitura.
+- [x] Abas **Telefones** e **Artigos** na barra de abas, como no canvas, com o contato de confiança no topo da
+      **Telefones** (veio da fase 5).
 - [ ] Publicar conteúdo novo pelo EAS Update em `preview`: baixar quando possível e mostrar na abertura seguinte,
-      sem esperar a atualização para abrir o app nem recarregar automaticamente.
+      sem esperar a atualização para abrir o app nem recarregar automaticamente. O padrão do `expo-updates` já faz
+      isso (verifica ao abrir, sem esperar); falta publicar com `eas update --channel preview` e conferir no aparelho.
 
 **Aceite:** abrir artigos e telefones em modo avião; conferir ordenação após editar o perfil, leitura com fonte
 ampliada e divulgação do Premium apenas nos pontos previstos, fora das categorias de emergência.

@@ -1,13 +1,15 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNavigationContainerRef, createStaticNavigation, type StaticParamList } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { House, Pill, type LucideIcon } from 'lucide-react-native';
+import { BookOpen, House, Phone, Pill, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 
 import { AppText } from './components/AppText';
 import { Button } from './components/Button';
 import { Screen } from './components/Screen';
+import { ArticleScreen } from './features/articles/ArticleScreen';
+import { ArticlesScreen } from './features/articles/ArticlesScreen';
 import { DeviceConflictScreen } from './features/auth/DeviceConflictScreen';
 import { SignInScreen } from './features/auth/SignInScreen';
 import { ContactScreen } from './features/contact/ContactScreen';
@@ -18,6 +20,7 @@ import { MedicationsScreen } from './features/medications/MedicationsScreen';
 import { ReminderScreen } from './features/medications/ReminderScreen';
 import { AboutScreen } from './features/profile/AboutScreen';
 import { HealthScreen } from './features/profile/HealthScreen';
+import { PhonesScreen } from './features/phones/PhonesScreen';
 import { ProfileScreen } from './features/profile/ProfileScreen';
 import { hasHealthAnswers, useProfile } from './features/profile/store';
 import {
@@ -51,7 +54,6 @@ function tab(title: string, Icon: LucideIcon) {
   };
 }
 
-// Tabs come as their features do: Telefones and Artigos with phase 8 (docs/plano-app.md).
 const Tabs = createBottomTabNavigator({
   screenOptions: {
     headerShown: false,
@@ -63,6 +65,8 @@ const Tabs = createBottomTabNavigator({
   screens: {
     Today: { screen: TodayScreen, options: tab('Hoje', House) },
     Medications: { screen: MedicationsScreen, options: tab('Remédios', Pill) },
+    Phones: { screen: PhonesScreen, options: tab('Telefones', Phone) },
+    Articles: { screen: ArticlesScreen, options: tab('Artigos', BookOpen) },
   },
 });
 
@@ -86,6 +90,7 @@ const RootStack = createNativeStackNavigator({
         Contact: ContactScreen,
         WhatsAppLink: WhatsAppLinkScreen,
         Sos: SosScreen,
+        Article: ArticleScreen,
       },
     },
     Shared: {

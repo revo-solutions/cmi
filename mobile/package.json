@@ -48,7 +48,8 @@
     "lint": "expo lint",
     "test": "jest",
     "api": "node scripts/fetch-openapi.mjs && orval",
-    "api:generate": "orval"
+    "api:generate": "orval",
+    "content": "node scripts/content.mjs"
   },
   "jest": {
     "preset": "jest-expo"

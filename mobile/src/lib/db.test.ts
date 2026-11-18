@@ -13,3 +13,7 @@ test('the first schema has every table the plan names', () => {
   const tables = [...migrations[0].matchAll(/CREATE TABLE (\w+)/g)].map((match) => match[1]);
   expect(tables).toEqual(['medications', 'medication_periods', 'dose_records', 'contact', 'profile', 'outbox', 'settings']);
 });
+
+test('the help requests come in their own migration', () => {
+  expect(migrations[1]).toMatch(/CREATE TABLE sos_requests/);
+});

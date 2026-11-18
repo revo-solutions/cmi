@@ -1,0 +1,9 @@
+[
+  { "category": "Emergência", "name": "SAMU, ambulância", "number": "192", "emergency": true },
+  { "category": "Emergência", "name": "Bombeiros", "number": "193", "emergency": true },
+  { "category": "Emergência", "name": "Polícia Militar", "number": "190", "emergency": true },
+  { "category": "Emergência", "name": "Defesa Civil", "number": "199", "emergency": true },
+  { "category": "Apoio emocional", "name": "CVV, Centro de Valorização da Vida", "number": "188", "emergency": true },
+  { "category": "Direitos e saúde", "name": "Disque 100, Direitos Humanos e violência contra a pessoa idosa", "number": "100", "emergency": false },
+  { "category": "Direitos e saúde", "name": "Disque Saúde", "number": "136", "emergency": false }
+]

@@ -17,6 +17,7 @@ async function clearRows(db: SQLiteDatabase) {
     DELETE FROM medications;
     DELETE FROM contact;
     DELETE FROM profile;
+    DELETE FROM sos_requests;
   `);
   await db.runAsync('DELETE FROM settings WHERE key = ?', blockedAccountKey);
 }

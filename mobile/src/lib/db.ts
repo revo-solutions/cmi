@@ -81,6 +81,17 @@ export const migrations = [
     value TEXT NOT NULL
   );
   `,
+  `
+  -- Help requests over WhatsApp, apart from the outbox so a phone blocked from syncing still sends them. requested_at
+  -- carries the phone's offset; accepted means the server has the request, and status is its last NoticeStatus.
+  CREATE TABLE sos_requests (
+    id TEXT PRIMARY KEY NOT NULL,
+    requested_at TEXT NOT NULL,
+    accepted INTEGER NOT NULL DEFAULT 0,
+    status TEXT,
+    last_error TEXT
+  );
+  `,
 ];
 
 export function pendingMigrations(version: number) {
