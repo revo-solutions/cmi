@@ -377,7 +377,8 @@ dotnet run --project src/RevoSolutions.CMI.API
 
 After a model change: `dotnet ef migrations add <Name> --project src/RevoSolutions.CMI.Data.PostgreSql
 --startup-project src/RevoSolutions.CMI.API --output-dir Migrations`. `dotnet tool restore` installs `dotnet-ef`.
-Real logins need `SocialLogin:GoogleClientIds` / `SocialLogin:AppleClientIds` in user secrets; the tests don't.
+The client IDs aren't secret: `appsettings.Development.json` carries the Google web client ID, and the Apple bundle
+ID goes there too once iOS login is set up. User secrets are for real secrets only.
 
 The API's image (`src/RevoSolutions.CMI.API/Dockerfile`, built from the repository root, listening on 8080) is what
 gets deployed. The `image` workflow, run by hand, publishes it to `ghcr.io/<repo>/api` with the commit's sha and
