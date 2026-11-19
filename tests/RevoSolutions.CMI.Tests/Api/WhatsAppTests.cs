@@ -43,7 +43,7 @@ public class WhatsAppTests
     [Fact]
     public async Task Sending_the_code_links_the_family_member_and_parar_stops_until_the_code_comes_again()
     {
-        var phone = await PersonWithContact("Maria", Relationship.Mother);
+        var phone = await PersonWithContact("Maria", Relationship.Wife);
         var whatsApp = CmiApiFactory.NewWhatsAppNumber();
         var link = await Link(phone);
         link.Should().BeEquivalentTo(new { Linked = false, Stopped = false });
@@ -51,7 +51,7 @@ public class WhatsAppTests
 
         await Receive(whatsApp, $"Olá! Quero receber os avisos da Maria pelo Central Melhor Idade. Código: {link.Code}");
         (await Link(phone)).Should().BeEquivalentTo(new { link.Code, Linked = true, Stopped = false });
-        LastReply(whatsApp).Should().Contain("os avisos da sua mãe, Maria").And.Contain("PARAR");
+        LastReply(whatsApp).Should().Contain("os avisos da sua esposa, Maria").And.Contain("PARAR");
 
         await Receive(whatsApp, " parar! ");
         (await Link(phone)).Should().BeEquivalentTo(new { Linked = true, Stopped = true });

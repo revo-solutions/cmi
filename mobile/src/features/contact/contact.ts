@@ -5,6 +5,8 @@ import type { Position } from '../../lib/location';
 export const relationshipLabels: Record<Relationship, string> = {
   Mother: 'Mãe',
   Father: 'Pai',
+  Wife: 'Esposa',
+  Husband: 'Marido',
   Grandmother: 'Avó',
   Grandfather: 'Avô',
   Aunt: 'Tia',

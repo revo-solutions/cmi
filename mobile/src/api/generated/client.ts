@@ -135,6 +135,8 @@ export const Relationship = {
   Aunt: 'Aunt',
   Friend: 'Friend',
   Other: 'Other',
+  Husband: 'Husband',
+  Wife: 'Wife',
 } as const;
 
 export interface ContactModel {

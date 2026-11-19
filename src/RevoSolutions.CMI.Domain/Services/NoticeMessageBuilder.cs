@@ -37,6 +37,8 @@ public class NoticeMessageBuilder
         {
             Relationship.Father => "do seu pai",
             Relationship.Mother => "da sua mãe",
+            Relationship.Husband => "do seu marido",
+            Relationship.Wife => "da sua esposa",
             Relationship.Grandfather => "do seu avô",
             Relationship.Grandmother => "da sua avó",
             Relationship.Uncle => "do seu tio",

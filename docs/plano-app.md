@@ -167,9 +167,9 @@ Revisar respostas pelo Perfil, abrir os ajustes para liberar lembretes e conferi
 
 Protótipo antes: o vínculo pelo WhatsApp, com o link, o QR code e os estados pendente, vinculado e parado.
 
-- [x] Cadastro do contato: nome, telefone e parentesco do ponto de vista do familiar (`Relationship`: pai, mãe, avô,
-      avó, tio, tia, amigo, outro). Remover o contato limpa o compartilhamento de todos os medicamentos. Passo
-      opcional da configuração inicial, entre medicamentos e permissões, e tela pelo **Perfil**.
+- [x] Cadastro do contato: nome, telefone e parentesco do ponto de vista do familiar (`Relationship`: pai, mãe,
+      marido, esposa, avô, avó, tio, tia, amigo, outro). Remover o contato limpa o compartilhamento de todos os
+      medicamentos. Passo opcional da configuração inicial, entre medicamentos e permissões, e tela pelo **Perfil**.
 - [x] Ao cadastrar o contato, compartilhar os remédios que já existem e mostrar a lista para desmarcar algum
       (compartilhado por padrão, `docs/escopo.md`).
 - [x] Revogação por remédio ou do contato inteiro. Mostrar quando

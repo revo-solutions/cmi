@@ -11,4 +11,6 @@ public enum Relationship
     Aunt,
     Friend,
     Other,
+    Husband,
+    Wife,
 }
