@@ -1,9 +1,11 @@
+import type { Sex } from '../../api/generated/client';
 import { getDatabase, useRows } from '../../lib/db';
 import { enqueue, updatedAfter } from '../../lib/outbox';
 import { changeAccount } from '../../lib/sync';
 
 type ProfileRow = {
   name: string | null;
+  sex: Sex;
   birth_date: string | null;
   conditions: string;
   other_condition: string | null;
@@ -16,6 +18,7 @@ type ProfileRow = {
 // A null answer is one the person skipped. Conditions are the server's HealthCondition codes.
 export type Profile = {
   name: string | null;
+  sex: Sex;
   birthDate: string | null;
   conditions: string[];
   otherCondition: string | null;
@@ -28,7 +31,7 @@ export type Profile = {
 const profileSql = 'SELECT * FROM profile WHERE id = 1';
 
 const empty: Profile = {
-  name: null, birthDate: null, conditions: [], otherCondition: null,
+  name: null, sex: null, birthDate: null, conditions: [], otherCondition: null,
   livesAlone: null, fellLastYear: null, visionDifficulty: null, updatedAt: null,
 };
 
@@ -42,6 +45,7 @@ function toProfile(row: ProfileRow | undefined): Profile {
   }
   return {
     name: row.name,
+    sex: row.sex,
     birthDate: row.birth_date,
     conditions: JSON.parse(row.conditions) as string[],
     otherCondition: row.other_condition,
@@ -73,14 +77,14 @@ export async function saveProfile(change: Partial<Omit<Profile, 'updatedAt'>>) {
     const current = toProfile(await transaction.getFirstAsync<ProfileRow>(profileSql) ?? undefined);
     const next = { ...current, ...change, updatedAt: updatedAfter(current.updatedAt) };
     await transaction.runAsync(`
-      INSERT INTO profile (id, name, birth_date, conditions, other_condition, lives_alone, fell_last_year,
+      INSERT INTO profile (id, name, sex, birth_date, conditions, other_condition, lives_alone, fell_last_year,
         vision_difficulty, updated_at)
-      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT (id) DO UPDATE SET name = excluded.name, birth_date = excluded.birth_date,
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (id) DO UPDATE SET name = excluded.name, sex = excluded.sex, birth_date = excluded.birth_date,
         conditions = excluded.conditions, other_condition = excluded.other_condition,
         lives_alone = excluded.lives_alone, fell_last_year = excluded.fell_last_year,
         vision_difficulty = excluded.vision_difficulty, updated_at = excluded.updated_at
-    `, next.name, next.birthDate, JSON.stringify(next.conditions), next.otherCondition, next.livesAlone,
+    `, next.name, next.sex, next.birthDate, JSON.stringify(next.conditions), next.otherCondition, next.livesAlone,
     next.fellLastYear, next.visionDifficulty, next.updatedAt);
     await enqueue(transaction, 'profile', next);
   });

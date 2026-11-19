@@ -52,10 +52,10 @@ export async function restoreAccountData(snapshot: SyncModel, keepDosesAfter?: n
     const profile = snapshot.profile;
     if (profile) {
       await transaction.runAsync(`
-        INSERT INTO profile (id, name, birth_date, conditions, other_condition, lives_alone,
+        INSERT INTO profile (id, name, sex, birth_date, conditions, other_condition, lives_alone,
           fell_last_year, vision_difficulty, updated_at)
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, profile.name, profile.birthDate, JSON.stringify(profile.conditions), profile.otherCondition,
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, profile.name, profile.sex ?? null, profile.birthDate, JSON.stringify(profile.conditions), profile.otherCondition,
       profile.livesAlone, profile.fellLastYear, profile.visionDifficulty, profile.updatedAt);
     }
     for (const medication of snapshot.medications ?? []) {

@@ -17,6 +17,7 @@ import { BatteryCard } from './BatteryCard';
 import { formatBirthDate } from './birthday';
 import { DeleteAccountPrompt } from './DeleteAccountPrompt';
 import { conditionLabels } from './health';
+import { sexOptions } from './sex';
 import { hasHealthAnswers, useProfile } from './store';
 
 export function ProfileScreen() {
@@ -61,11 +62,12 @@ export function ProfileScreen() {
           <Card>
             <AppText variant="title" accessibilityRole="header">Sobre você</AppText>
             <AppText>{profile.name ?? 'Nome não informado'}</AppText>
+            <AppText variant="support">{sexOptions.find((o) => o.value === profile.sex)?.label ?? 'Sexo não informado'}</AppText>
             <AppText variant="support">
               {profile.birthDate ? `Nascimento: ${formatBirthDate(profile.birthDate)}` : 'Data de nascimento não informada'}
             </AppText>
             <Button
-              label="Editar" accessibilityLabel="Editar nome e data de nascimento" variant="secondary"
+              label="Editar" accessibilityLabel="Editar nome, sexo e data de nascimento" variant="secondary"
               onPress={() => navigation.navigate('ProfileAbout')}
             />
           </Card>

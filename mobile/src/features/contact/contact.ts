@@ -1,8 +1,8 @@
-import type { Relationship } from '../../api/generated/client';
+import type { Relationship, Sex } from '../../api/generated/client';
 import type { Position } from '../../lib/location';
 
 // What the person is to the contact, as the notices read it: "sua mãe, Maria" (docs/escopo.md, parentesco).
-export const relationshipLabels: Record<Relationship, string> = {
+const relationshipLabels: Record<Relationship, string> = {
   Mother: 'Mãe',
   Father: 'Pai',
   Wife: 'Esposa',
@@ -14,6 +14,13 @@ export const relationshipLabels: Record<Relationship, string> = {
   Friend: 'Amigo ou amiga',
   Other: 'Outro',
 };
+
+export function relationshipLabel(relationship: Relationship, sex: Sex) {
+  if (relationship === 'Friend' && sex) {
+    return sex === 'Female' ? 'Amiga' : 'Amigo';
+  }
+  return relationshipLabels[relationship];
+}
 
 // ContactModelValidator rejects longer names in the sync batch.
 export const maxNameLength = 200;

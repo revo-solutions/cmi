@@ -20,6 +20,7 @@ erDiagram
         varchar(255) Subject "identificador no provedor"
         varchar(320) Email "opcional"
         varchar(100) Name "opcional"
+        varchar(20) Sex "Male ou Female, opcional"
         date BirthDate "opcional"
         text[] Conditions "códigos das condições de saúde"
         varchar(200) OtherCondition "opcional"

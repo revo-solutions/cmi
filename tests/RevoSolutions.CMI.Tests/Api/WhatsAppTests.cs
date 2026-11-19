@@ -77,6 +77,20 @@ public class WhatsAppTests
         LastReply(whatsApp).Should().Contain("responda PARAR");
     }
 
+    [Theory]
+    [InlineData(Sex.Female, "os avisos da sua amiga, Maria")]
+    [InlineData(Sex.Male, "os avisos do seu amigo, Maria")]
+    [InlineData(null, "os avisos de Maria")]
+    public async Task A_friend_hears_about_the_person_in_their_sex(Sex? sex, string expected)
+    {
+        var phone = await PersonWithContact("Maria", Relationship.Friend, sex: sex);
+        var whatsApp = CmiApiFactory.NewWhatsAppNumber();
+
+        await Receive(whatsApp, (await Link(phone)).Code);
+
+        LastReply(whatsApp).Should().Contain(expected);
+    }
+
     [Fact]
     public async Task Without_premium_the_link_is_kept_and_the_reply_says_when_the_notices_start()
     {
@@ -120,12 +134,12 @@ public class WhatsAppTests
         (await phone.GetAsync("/api/v1/contact/link")).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    private async Task<HttpClient> PersonWithContact(string? name, Relationship relationship, string? subject = null)
+    private async Task<HttpClient> PersonWithContact(string? name, Relationship relationship, string? subject = null, Sex? sex = null)
     {
         var phone = await _factory.SignedInClient(subject ?? CmiApiFactory.NewSubject(), Guid.NewGuid());
         await Sync(phone, new SyncModel
         {
-            Profile = new ProfileModel(name, null, [], null, null, null, null, DateTimeOffset.UtcNow),
+            Profile = new ProfileModel(name, sex, null, [], null, null, null, null, DateTimeOffset.UtcNow),
             Contacts = [new ContactModel(Guid.NewGuid(), "Ana", "+5511999990000", relationship, false, DateTimeOffset.UtcNow)],
         });
 

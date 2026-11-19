@@ -9,7 +9,7 @@ jest.mock('../profile/store', () => ({
 }));
 
 const profile: Profile = {
-  name: 'Maria', birthDate: null, conditions: [], otherCondition: null,
+  name: 'Maria', sex: 'Female', birthDate: null, conditions: [], otherCondition: null,
   livesAlone: null, fellLastYear: null, visionDifficulty: null, updatedAt: null,
 };
 

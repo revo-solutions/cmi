@@ -16,6 +16,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.Subject).HasMaxLength(255).IsRequired();
         builder.Property(a => a.Email).HasMaxLength(320);
         builder.Property(a => a.Name).HasMaxLength(100);
+        builder.Property(a => a.Sex).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.OtherCondition).HasMaxLength(200);
         builder.Property(a => a.Platform).HasConversion<string>().HasMaxLength(20);
         builder.Property(a => a.TimeZone).HasMaxLength(100);

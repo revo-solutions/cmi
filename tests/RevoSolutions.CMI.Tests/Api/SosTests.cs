@@ -202,7 +202,7 @@ public class SosTests
         var phone = await _factory.SignedInClient(subject, Guid.NewGuid());
         var records = new SyncModel
         {
-            Profile = new ProfileModel("Maria", null, [], null, null, null, null, DateTimeOffset.UtcNow),
+            Profile = new ProfileModel("Maria", Sex.Female, null, [], null, null, null, null, DateTimeOffset.UtcNow),
             Contacts = [new ContactModel(Guid.NewGuid(), "Ana", "+5511999990000", Relationship.Mother, false, DateTimeOffset.UtcNow)],
         };
         (await phone.PostAsJsonAsync("/api/v1/sync", records, CmiApiFactory.Json)).EnsureSuccessStatusCode();

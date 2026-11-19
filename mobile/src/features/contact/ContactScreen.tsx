@@ -7,7 +7,8 @@ import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
-import { relationshipLabels } from './contact';
+import { useProfile } from '../profile/store';
+import { relationshipLabel } from './contact';
 import { ContactActions } from './ContactActions';
 import { ContactForm } from './ContactForm';
 import { SharingList } from './SharingList';
@@ -38,6 +39,7 @@ export function ContactScreen() {
 
 function Details({ contact, onEdit }: { contact: Contact; onEdit: () => void }) {
   const navigation = useNavigation();
+  const sex = useProfile()?.sex ?? null;
   const confirmRemove = () => {
     Alert.alert(
       `Remover ${contact.name}?`,
@@ -54,7 +56,7 @@ function Details({ contact, onEdit }: { contact: Contact; onEdit: () => void }) 
       <Card>
         <AppText variant="title">{contact.name}</AppText>
         <AppText>{contact.phone}</AppText>
-        <AppText variant="support">Para {contact.name}, você é: {relationshipLabels[contact.relationship].toLowerCase()}</AppText>
+        <AppText variant="support">Para {contact.name}, você é: {relationshipLabel(contact.relationship, sex).toLowerCase()}</AppText>
         <Button label="Editar" accessibilityLabel={`Editar ${contact.name}`} variant="secondary" onPress={onEdit} />
       </Card>
       <ContactActions contact={contact} />

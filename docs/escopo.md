@@ -39,7 +39,7 @@ Tudo o que sai pelo WhatsApp é do Premium, porque cada mensagem custa: o víncu
 
 - A pessoa pode cadastrar um contato de confiança (nome, telefone e parentesco), escolher quais medicamentos quer compartilhar e revogar o acesso. O familiar não instala o aplicativo: ele recebe os avisos pelo WhatsApp.
 - **Compartilhado por padrão.** Com um contato cadastrado, todo remédio novo já vem compartilhado. Ao cadastrar o contato, os remédios que já existem passam a ser compartilhados, e a pessoa vê a lista para desmarcar algum. A escolha por remédio é um opt-out no cadastro: o app informa que "A Ana acompanha este remédio pelo WhatsApp: o resumo do dia e um aviso quando não recebermos a confirmação" e oferece, desmarcada, a opção "Não compartilhar este remédio com a Ana". Na lista de remédios, os que ficaram de fora aparecem como "Só para você".
-- **Parentesco.** O cadastro do contato tem o parentesco do ponto de vista do familiar (pai, mãe, marido, esposa, avô, avó, tio, tia, amigo, outro). Os avisos usam esse campo: "Sua mãe, Maria, pediu ajuda".
+- **Parentesco.** O cadastro do contato tem o parentesco do ponto de vista do familiar (pai, mãe, marido, esposa, avô, avó, tio, tia, amigo, outro), com as opções que cabem ao sexo da pessoa. Os avisos usam esse campo: "Sua mãe, Maria, pediu ajuda"; para amigo, o sexo da pessoa diz "seu amigo" ou "sua amiga".
 - **Vínculo do familiar.** O app mostra um link ou QR code que abre o WhatsApp com uma mensagem pronta para o número do aplicativo, com um código de vínculo. Quando o familiar envia a mensagem, o servidor registra o aceite exigido pela Meta, confirma o número e vincula o familiar à pessoa. O familiar pode responder **PARAR** a qualquer momento para deixar de receber avisos.
 - Se uma dose de um medicamento compartilhado não for registrada até **1 hora** depois do horário, ela passa a **Sem confirmação** e o familiar recebe um aviso de **dose sem confirmação**.
 - Todos os dias às **20h**, o familiar recebe um **resumo diário** dos medicamentos compartilhados. O resumo cobre as doses das 24 horas anteriores e mostra as registradas, as sem confirmação e as ainda dentro do prazo. Tocar em **Tomei** não gera um aviso por dose.
@@ -80,7 +80,7 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 ### Configuração inicial
 
 - O aplicativo roda apenas no celular da pessoa idosa. Um familiar pode ajudar presencialmente a fazer a configuração. Não há assistência remota no MVP.
-- Ordem: login, nome e data de nascimento, questionário de saúde (que pode ser pulado), medicamentos, contato de confiança (opcional) e permissões.
+- Ordem: login, nome, sexo e data de nascimento, questionário de saúde (que pode ser pulado), medicamentos, contato de confiança (opcional) e permissões.
 
 ### Conta e perfil
 
@@ -89,10 +89,11 @@ Regras para evitar uma enxurrada de avisos. Os números são valores iniciais pa
 - **Sincronização.** Todos os dados do app vão para o servidor quando houver conexão, e o app continua funcionando sem internet. Há um aparelho ativo por conta: ao entrar em outro celular, o anterior para de sincronizar.
 - **E-mail.** Quem entra pela Apple com "Ocultar meu e-mail" entrega um endereço de redirecionamento, não o e-mail real.
 - **Nome.** Logo depois do login, já preenchido com o nome da conta Google ou Apple, para a pessoa confirmar ou dizer como prefere ser chamada. Os avisos ao familiar usam esse nome: "sua mãe, Maria".
+- **Sexo.** Obrigatório, na mesma tela do nome: "Você é:" com **Homem** e **Mulher**, sem nada marcado de início. O app não usa texto neutro: com o sexo, fala com a pessoa no masculino ou no feminino ("Você mora sozinha?"), mostra só os parentescos que cabem a ela (mãe, esposa, avó, tia, amiga ou outro para uma mulher) e o aviso ao familiar diz "da sua amiga, Maria". Não é deduzido do nome nem do login. Uma conta criada antes dessa pergunta vê um cartão na tela **Hoje** que pergunta até a pessoa responder.
 - **Data de nascimento.** Obrigatória, na mesma tela do nome, com campos grandes de dia, mês e ano que começam vazios (o calendário do sistema é difícil para esse público, e uma data sugerida poderia ser confirmada sem querer). No dia do aniversário, o app mostra uma notificação de parabéns.
 - **Questionário de saúde.** Logo depois da data de nascimento, numa tela só, com botões grandes e um **Pular** bem visível. Se a pessoa pular, um cartão na tela **Hoje** volta a pedir **3 dias** depois. Tudo fica editável no Perfil.
   - **Condições** (múltipla escolha): pressão alta, diabetes, colesterol alto, problema no coração, artrose ou artrite, osteoporose, tireoide, depressão ou ansiedade, problema de memória, asma ou bronquite crônica, AVC (derrame), problema nos rins, outra (texto livre) e nenhuma.
-  - **Três perguntas de sim ou não:** mora sozinho(a)? Caiu nos últimos 12 meses? Tem dificuldade para enxergar? A última pode ligar o modo de letras grandes e alto contraste.
+  - **Três perguntas de sim ou não:** mora sozinho ou sozinha, conforme o sexo? Caiu nos últimos 12 meses? Tem dificuldade para enxergar? A última pode ligar o modo de letras grandes e alto contraste.
   - **Usos:** artigos sugeridos, conhecer a base de usuários, pesquisa para a futura linha de suplementos e contexto para o futuro chat com IA. A resposta sobre quedas mede o interesse no [spike de detecção de queda](#spike-detecção-de-possíveis-quedas).
 - **Excluir conta.** Dentro do app, como a Apple e a Google exigem. Uma janela pede o nome salvo no perfil (ou `EXCLUIR` se estiver sem nome) e depois mostra a confirmação final. A Google também exige um link na web para pedir a exclusão. Excluir a conta apaga os dados do servidor.
 

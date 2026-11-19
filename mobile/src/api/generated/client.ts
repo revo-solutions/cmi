@@ -75,9 +75,18 @@ export interface SosStatusModel {
   reason?: null | SosNotSentReason;
 }
 
+export type Sex = typeof Sex[keyof typeof Sex] | null;
+
+
+export const Sex = {
+  Male: 'Male',
+  Female: 'Female',
+} as const;
+
 export interface ProfileModel {
   /** @nullable */
   name: string | null;
+  sex: null | Sex;
   /** @nullable */
   birthDate: string | null;
   conditions: string[];

@@ -101,6 +101,10 @@ export const migrations = [
   -- Why the server didn't send a NotSent request (SosNotSentReason), so the screen can say so.
   ALTER TABLE sos_requests ADD COLUMN reason TEXT;
   `,
+  `
+  -- The server's Sex, asked in setup; null only for a profile made before the question.
+  ALTER TABLE profile ADD COLUMN sex TEXT;
+  `,
 ];
 
 export function pendingMigrations(version: number) {

@@ -31,10 +31,12 @@ public class NoticeMessageBuilder
         _settings = settings;
     }
 
-    public static string Subject(Relationship relationship, string? name)
+    public static string Subject(Relationship relationship, string? name, Sex? sex)
     {
         var relative = relationship switch
         {
+            Relationship.Friend when sex == Sex.Female => "da sua amiga",
+            Relationship.Friend when sex == Sex.Male => "do seu amigo",
             Relationship.Father => "do seu pai",
             Relationship.Mother => "da sua mãe",
             Relationship.Husband => "do seu marido",
@@ -70,7 +72,7 @@ public class NoticeMessageBuilder
             return null;
         }
 
-        var subject = Subject(contact.Relationship, account.Name);
+        var subject = Subject(contact.Relationship, account.Name, account.Sex);
 
         return notice.Kind switch
         {

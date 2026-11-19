@@ -18,6 +18,7 @@ import { useProfile } from '../profile/store';
 import { greeting } from './greeting';
 import { HealthCard } from './HealthCard';
 import { ReminderPermissionCard } from './ReminderPermissionCard';
+import { SexCard } from './SexCard';
 import { SyncStatusCard } from './SyncStatusCard';
 
 export function TodayScreen() {
@@ -32,6 +33,7 @@ export function TodayScreen() {
       {profile && <AppText variant="title">{greeting(now, profile.name)}</AppText>}
       <ReminderPermissionCard />
       <SyncStatusCard />
+      <SexCard />
 
       {doses && !hasMedications && (
         <Card>

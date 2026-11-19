@@ -266,7 +266,7 @@ public class NoticeTests
     public async Task The_contact_is_reminded_of_the_birthday_in_the_morning()
     {
         var today = DateOnly.FromDateTime(Local(DateTime.UtcNow));
-        var profile = new ProfileModel("Maria", new DateOnly(1952, today.Month, today.Day), [], null, null, null, null, DateTimeOffset.UtcNow);
+        var profile = new ProfileModel("Maria", Sex.Female, new DateOnly(1952, today.Month, today.Day), [], null, null, null, null, DateTimeOffset.UtcNow);
         var person = await Person(new SyncModel { Profile = profile });
 
         await Check(person.AccountId, LocalToUtc(today, new TimeOnly(8, 55)));

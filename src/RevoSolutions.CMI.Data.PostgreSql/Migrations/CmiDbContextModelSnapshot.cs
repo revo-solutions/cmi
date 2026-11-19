@@ -172,6 +172,10 @@ namespace RevoSolutions.CMI.Data.PostgreSql.Migrations
                     b.Property<DateTime?>("PushUnregisteredAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Sex")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(255)

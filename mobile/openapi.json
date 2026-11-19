@@ -851,6 +851,7 @@
       "ProfileModel": {
         "required": [
           "name",
+          "sex",
           "birthDate",
           "conditions",
           "otherCondition",
@@ -865,6 +866,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "sex": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Sex"
+              }
             ]
           },
           "birthDate": {
@@ -933,6 +944,13 @@
           "Other",
           "Husband",
           "Wife"
+        ]
+      },
+      "Sex": {
+        "enum": [
+          "Male",
+          "Female",
+          null
         ]
       },
       "SosModel": {

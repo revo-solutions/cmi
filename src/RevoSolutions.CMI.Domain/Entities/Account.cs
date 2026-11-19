@@ -44,6 +44,9 @@ public class Account : EntityBase
     // How the notices name the person ("sua mãe, Maria"). The app prefills it from the login.
     public string? Name { get; set; }
 
+    // Null only for an account made before the app asked it.
+    public Sex? Sex { get; set; }
+
     public DateOnly? BirthDate { get; set; }
 
     // HealthCondition codes, never display text.
@@ -128,6 +131,7 @@ public class Account : EntityBase
     public void UpdateProfile(ProfileModel profile)
     {
         Name = profile.Name;
+        Sex = profile.Sex;
         BirthDate = profile.BirthDate;
         Conditions = profile.Conditions.ToList();
         OtherCondition = profile.OtherCondition;

@@ -12,6 +12,7 @@ import { YesNo } from '../../components/YesNo';
 import { useDisplayMode } from '../../lib/displayMode';
 import { colors, touch } from '../../theme';
 import { healthConditions, otherCondition, toggleCondition } from './health';
+import { bySex } from './sex';
 import { saveProfile, useProfile, type Profile } from './store';
 
 // The server's ProfileModelValidator limit.
@@ -78,7 +79,7 @@ function Form({ profile, submitLabel, onSaved, onSkip }: HealthFormProps & { pro
       </View>
 
       <View style={styles.section}>
-        <YesNo question="Você mora só?" value={livesAlone} onChange={setLivesAlone} />
+        <YesNo question={bySex(profile.sex, 'Você mora sozinho?', 'Você mora sozinha?')} value={livesAlone} onChange={setLivesAlone} />
         <YesNo question="Você caiu alguma vez nos últimos 12 meses?" value={fellLastYear} onChange={setFellLastYear} />
         <YesNo question="Você tem dificuldade para enxergar?" value={visionDifficulty} onChange={setVisionDifficulty} />
       </View>

@@ -69,7 +69,7 @@ public class ContactLinkService
         // Linked even without Premium, so the notices start as soon as the person subscribes; the reply says so rather
         // than promise notices that won't come.
         var account = await _accounts.FirstOrDefault(a => a.Id == contact.AccountId);
-        var notices = $"os avisos {NoticeMessageBuilder.Subject(contact.Relationship, account?.Name)} no Central Melhor Idade: " +
+        var notices = $"os avisos {NoticeMessageBuilder.Subject(contact.Relationship, account?.Name, account?.Sex)} no Central Melhor Idade: " +
             "o resumo diário, as doses sem confirmação e lembretes como o de aniversário.";
 
         return account?.IsPremium(now) == true

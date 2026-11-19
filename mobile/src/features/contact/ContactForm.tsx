@@ -7,10 +7,11 @@ import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
 import { TextField } from '../../components/TextField';
 import { colors } from '../../theme';
-import { formatPhone, maxNameLength, maxPhoneDigits, phoneDigits, phoneProblem, relationshipLabels } from './contact';
+import { bySex, relationshipsFor } from '../profile/sex';
+import { useProfile } from '../profile/store';
+import { formatPhone, maxNameLength, maxPhoneDigits, phoneDigits, phoneProblem, relationshipLabel } from './contact';
 import { saveContact, type Contact } from './store';
 
-const relationships = Object.keys(relationshipLabels) as Relationship[];
 type ErrorField = 'name' | 'phone' | 'relationship' | 'save';
 
 // Name, phone and relationship: a step of setup and an edit from Perfil.
@@ -18,6 +19,7 @@ export function ContactForm({ contact, submitLabel, onSaved }: { contact: Contac
   const [name, setName] = useState(contact?.name ?? '');
   const [phone, setPhone] = useState(() => phoneDigits(contact?.phone ?? ''));
   const [relationship, setRelationship] = useState<Relationship | null>(contact?.relationship ?? null);
+  const sex = useProfile()?.sex ?? null;
   const [errorField, setErrorField] = useState<ErrorField | null>(null);
   const [saving, setSaving] = useState(false);
   const phoneInput = useRef<ComponentRef<typeof TextInput>>(null);
@@ -71,16 +73,18 @@ export function ContactForm({ contact, submitLabel, onSaved }: { contact: Contac
 
       <View accessibilityRole="radiogroup" style={styles.group}>
         <AppText bold>{firstName ? `Para ${firstName}, você é:` : 'Para essa pessoa, você é:'}</AppText>
-        {relationships.map((value) => (
+        {relationshipsFor(sex, contact?.relationship ?? null).map((value) => (
           <Chip
             key={value}
             radio
-            label={relationshipLabels[value]}
+            label={relationshipLabel(value, sex)}
             selected={relationship === value}
             onPress={() => setRelationship(value)}
           />
         ))}
-        <AppText variant="support">Os avisos usam isso: “Sua mãe, Maria, pediu ajuda”.</AppText>
+        <AppText variant="support">
+          Os avisos usam isso: {bySex(sex, '“Seu pai, José, pediu ajuda”', '“Sua mãe, Maria, pediu ajuda”')}.
+        </AppText>
       </View>
 
       {error !== '' && (

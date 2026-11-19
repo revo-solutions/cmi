@@ -24,7 +24,7 @@ public class SyncTests
     {
         var subject = CmiApiFactory.NewSubject();
         var phone = await _factory.SignedInClient(subject, Guid.NewGuid());
-        var profile = new ProfileModel("Maria", new DateOnly(1950, 3, 9), ["hipertensao", "outra"], "Glaucoma", true, false, true, Start);
+        var profile = new ProfileModel("Maria", Sex.Female, new DateOnly(1950, 3, 9), ["hipertensao", "outra"], "Glaucoma", true, false, true, Start);
         var medication = Medication(Start);
         var period = Period(medication);
         var dose = Dose(medication.Id, takenAt: Start.AddMinutes(5), Start.AddMinutes(5));
@@ -160,7 +160,7 @@ public class SyncTests
 
         var response = await phone.PostAsJsonAsync(
             "/api/v1/sync",
-            new SyncModel { Profile = new ProfileModel(null, null, ["Pressão alta"], null, null, null, null, Start) },
+            new SyncModel { Profile = new ProfileModel(null, null, null, ["Pressão alta"], null, null, null, null, Start) },
             CmiApiFactory.Json);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

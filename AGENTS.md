@@ -53,10 +53,13 @@ starting value: keep each one in a single setting.
   its own login whenever Google's is offered). The account follows the person to any phone: medications, history,
   contact, profile and Premium. Account deletion is available in the app and deletes everything on the server.
   A dialog asks the person to type their profile name (or `EXCLUIR` if it is missing) before the final confirmation.
-- Setup order: login, name (prefilled from the login; the notices use it) and birth date (required, in large day/month/year
+- Setup order: login, name (prefilled from the login; the notices use it), sex and birth date (required, in large day/month/year
   fields that start empty, not the system calendar), health questionnaire (one
   screen, with a visible "Pular"; a card on **Hoje** asks again days later), medications, trusted contact (optional),
   permissions. Ask for little up front; everything stays editable in the profile.
+- Sex is asked, **Homem** or **Mulher**, never inferred from the name or the login, and the app writes no neutral
+  text: it addresses the person in their gender, offers only the relationships that fit it, and the friend notice
+  reads "da sua amiga". An account without it (made before the question) gets a card on **Hoje** until it is answered.
 - Health conditions are stored as fixed codes (`hipertensao`, `diabetes`, ...) plus the free text of "outra", never as
   display text, so the list can grow without breaking analysis.
 - Premium is bought in the app through the stores, via RevenueCat. The server trusts only RevenueCat's webhook, never
